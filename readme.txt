@@ -1,6 +1,6 @@
 === ogdynamic ===
 Contributors: mehedimi
-Tags: open graph, og image, og image generator, social media images, social share, twitter card, link preview, facebook preview, woocommerce, acf, gutenberg, seo
+Tags: open graph, og image, social media images, woocommerce, acf
 Requires at least: 6.3
 Tested up to: 7.1
 Requires PHP: 7.4
@@ -8,7 +8,7 @@ Stable tag: 0.5.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Auto-generate dynamic Open Graph (OG) images for every post, page, product, and archive — the Open Graph image generator that keeps your social share previews, Facebook link previews, and Twitter cards fresh. Need more than OG images? The Canvas Image Gutenberg block saves any canvas size — ad banners, product photo cards, social graphics — straight to your media library.
+Auto-generate unique Open Graph images for every post, product, and archive — plus any-size canvas banners. WooCommerce and ACF ready.
 
 == Description ==
 
