@@ -88,12 +88,15 @@ export type IntegrationStatus = {
   available: boolean;
   active: boolean;
   note: string;
+  /** Configured default banner id (banner-injecting integrations only). */
+  banner_id?: string;
 };
 
 export type EmailBannersPayload = {
   data: EmailBanner[];
   sources: EmailBannerSource[];
   integrations: IntegrationStatus[];
+  integration_banners?: Record<string, string>;
 };
 
 export interface User {

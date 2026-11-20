@@ -23,6 +23,42 @@ const funnelKit = computed<IntegrationStatus | undefined>(() =>
   integrations.value.find((item) => item.slug === "funnelkit"),
 );
 
+const cartBounty = computed<IntegrationStatus | undefined>(() =>
+  integrations.value.find((item) => item.slug === "cartbounty"),
+);
+
+const integrationApi = useOgdApi();
+
+const cartBountyBannerId = ref("");
+const integrationSaved = ref("");
+
+const cartBountyBannerOptions = computed(() => [
+  { value: "", label: "No banner" },
+  ...banners.value.map((banner) => ({
+    value: banner.id,
+    label: banner.name,
+  })),
+]);
+
+async function saveCartBountyBanner() {
+  integrationSaved.value = "";
+
+  try {
+    await integrationApi.request<{ data: Record<string, string> }>(
+      `email-banners/integrations/cartbounty`,
+      {
+        method: "PUT",
+        body: { banner_id: cartBountyBannerId.value },
+      },
+    );
+    integrationSaved.value = cartBountyBannerId.value
+      ? "Banner will be inserted into CartBounty recovery emails."
+      : "Banner removed from CartBounty emails.";
+  } catch {
+    // Error handled by API error state.
+  }
+}
+
 const funnelKitSteps = [
   "Open FunnelKit Automations and edit your abandoned cart automation email (or create one from the Cart Abandoned trigger).",
   "Click inside any text block, then open the Merge tags picker above the editor.",
@@ -49,6 +85,8 @@ async function load() {
     const payload = await api.request<EmailBannersPayload>("email-banners");
     banners.value = payload.data ?? [];
     integrations.value = payload.integrations ?? [];
+    cartBountyBannerId.value =
+      payload.integration_banners?.cartbounty ?? "";
   } catch {
     // Error handled by API error state.
   } finally {
@@ -224,6 +262,118 @@ onMounted(() => {
             restores their cart. Test emails and builder previews show the
             canvas defaults.
           </p>
+        </div>
+      </article>
+
+      <!-- CartBounty integration card: one default banner, no merge tags. -->
+      <article
+        v-if="cartBounty"
+        class="ogd:mt-4 ogd:rounded-[20px] ogd:border ogd:border-gray-100 ogd:bg-white ogd:p-6"
+      >
+        <div class="ogd:flex ogd:items-start ogd:gap-4">
+          <div
+            class="ogd:flex ogd:size-12 ogd:shrink-0 ogd:items-center ogd:justify-center ogd:rounded-[14px]"
+            :class="
+              cartBounty.available
+                ? 'ogd:bg-primary-soft ogd:text-primary'
+                : 'ogd:bg-gray-100 ogd:text-gray-400'
+            "
+          >
+            <svg
+              class="ogd:size-6"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <circle cx="8" cy="21" r="1" />
+              <circle cx="19" cy="21" r="1" />
+              <path
+                d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"
+              />
+            </svg>
+          </div>
+          <div class="ogd:flex-1">
+            <div class="ogd:flex ogd:items-center ogd:gap-2.5">
+              <h2
+                class="ogd:m-0 ogd:font-display ogd:text-base ogd:font-bold ogd:text-gray-900"
+              >
+                {{ cartBounty.label }}
+              </h2>
+              <span
+                class="ogd:rounded-full ogd:px-2 ogd:py-px ogd:text-[10px] ogd:font-semibold ogd:tracking-wide ogd:uppercase"
+                :class="
+                  cartBounty.available
+                    ? 'ogd:bg-success-soft ogd:text-success-text'
+                    : 'ogd:bg-gray-100 ogd:text-gray-500'
+                "
+              >
+                {{ cartBounty.available ? "Connected" : "Not installed" }}
+              </span>
+            </div>
+            <p
+              class="ogd:mt-1.5 ogd:mb-0 ogd:max-w-140 ogd:text-sm ogd:leading-relaxed ogd:text-gray-500"
+            >
+              {{ cartBounty.note }}
+            </p>
+
+            <div
+              v-if="cartBounty.available"
+              class="ogd:mt-4 ogd:flex ogd:flex-wrap ogd:items-center ogd:gap-2.5"
+            >
+              <select
+                v-model="cartBountyBannerId"
+                class="ogd:w-56 ogd:appearance-none ogd:rounded-full! ogd:border ogd:border-gray-200! ogd:bg-gray-50 ogd:px-6! ogd:py-1.5 ogd:text-[13.5px]! ogd:text-gray-900! ogd:outline-none! ogd:transition ogd:focus:border-primary! ogd:focus:bg-white! ogd:focus:shadow-[0_0_0_3px_rgba(99,91,255,0.12)]"
+                :disabled="banners.length === 0 || integrationApi.loading.value"
+              >
+                <option
+                  v-for="option in cartBountyBannerOptions"
+                  :key="option.value"
+                  :value="option.value"
+                >
+                  {{ option.label }}
+                </option>
+              </select>
+              <button
+                class="ogd:inline-flex ogd:cursor-pointer ogd:items-center ogd:justify-center ogd:gap-2 ogd:rounded-full ogd:border ogd:border-transparent ogd:bg-primary ogd:px-4 ogd:py-2 ogd:text-[12.5px] ogd:font-semibold ogd:text-white! ogd:transition ogd:hover:border-primary-hover ogd:hover:bg-primary-hover ogd:disabled:cursor-not-allowed ogd:disabled:opacity-50"
+                type="button"
+                :disabled="banners.length === 0 || integrationApi.loading.value"
+                @click="saveCartBountyBanner"
+              >
+                {{ integrationApi.loading.value ? "Saving…" : "Save" }}
+              </button>
+            </div>
+            <p
+              v-if="cartBounty.available && banners.length === 0"
+              class="ogd:mt-3 ogd:mb-0 ogd:text-[12.5px] ogd:text-gray-400"
+            >
+              Create a banner above to insert it into CartBounty emails.
+            </p>
+            <div
+              v-if="integrationApi.error.value"
+              class="ogd:mt-3 ogd:rounded-[14px] ogd:border ogd:border-destructive/25 ogd:bg-destructive/5 ogd:px-3.5 ogd:py-3 ogd:text-destructive"
+            >
+              {{ integrationApi.error.value }}
+            </div>
+            <div
+              v-if="integrationSaved"
+              class="ogd:mt-3 ogd:rounded-[14px] ogd:border ogd:border-success/25 ogd:bg-success-soft ogd:px-3.5 ogd:py-3 ogd:text-success-text"
+            >
+              {{ integrationSaved }}
+            </div>
+          </div>
+          <a
+            v-if="!cartBounty.available"
+            class="ogd:inline-flex ogd:items-center ogd:rounded-full ogd:border ogd:border-gray-200 ogd:bg-white ogd:px-4 ogd:py-2 ogd:text-[13px] ogd:font-semibold ogd:text-gray-700 ogd:no-underline ogd:transition ogd:hover:border-primary ogd:hover:text-primary"
+            href="https://wordpress.org/plugins/woo-save-abandoned-carts/"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Get CartBounty
+          </a>
         </div>
       </article>
 

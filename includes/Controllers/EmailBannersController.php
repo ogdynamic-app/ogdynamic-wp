@@ -48,6 +48,29 @@ class EmailBannersController {
 
 		register_rest_route(
 			'ogdynamic/v1',
+			'/email-banners/integrations/(?P<slug>[a-z0-9_-]+)',
+			array(
+				array(
+					'methods'             => WP_REST_Server::EDITABLE,
+					'callback'            => array( self::class, 'set_integration_banner' ),
+					'permission_callback' => array( self::class, 'can_manage' ),
+					'args'                => array(
+						'slug'      => array(
+							'required'          => true,
+							'sanitize_callback' => 'sanitize_key',
+						),
+						'banner_id' => array(
+							'required'          => false,
+							'default'           => '',
+							'sanitize_callback' => 'sanitize_key',
+						),
+					),
+				),
+			)
+		);
+
+		register_rest_route(
+			'ogdynamic/v1',
 			'/email-banners/(?P<id>[a-f0-9]{12})',
 			array(
 				array(
@@ -88,9 +111,37 @@ class EmailBannersController {
 	public static function get(): \WP_REST_Response {
 		return rest_ensure_response(
 			array(
-				'data'         => array_values( EmailBanners::get_all() ),
-				'sources'      => IntegrationManager::sources(),
-				'integrations' => IntegrationManager::status(),
+				'data'                => array_values( EmailBanners::get_all() ),
+				'sources'             => IntegrationManager::sources(),
+				'integrations'        => IntegrationManager::status(),
+				'integration_banners' => IntegrationManager::integration_banners(),
+			)
+		);
+	}
+
+	/**
+	 * Sets (or clears) an integration's default banner.
+	 *
+	 * @param WP_REST_Request $request The REST request object.
+	 * @return \WP_REST_Response|\WP_Error REST response or error.
+	 */
+	public static function set_integration_banner( WP_REST_Request $request ) {
+		$slug      = (string) $request->get_param( 'slug' );
+		$banner_id = sanitize_key( (string) $request->get_param( 'banner_id' ) );
+
+		$saved = IntegrationManager::set_integration_banner( $slug, $banner_id );
+
+		if ( ! $saved ) {
+			return new \WP_Error(
+				'ogd_invalid_integration_banner',
+				__( 'Unknown integration or banner.', 'ogdynamic' ),
+				array( 'status' => 400 )
+			);
+		}
+
+		return rest_ensure_response(
+			array(
+				'data' => IntegrationManager::integration_banners(),
 			)
 		);
 	}
