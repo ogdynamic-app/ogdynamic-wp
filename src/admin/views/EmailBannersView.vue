@@ -7,7 +7,6 @@ import type {
   IntegrationStatus,
 } from "../types";
 import { useOgdApi } from "../composables/useOgdApi";
-import { bannerPreviewUrl } from "../bannerPreview";
 
 const router = useRouter();
 const api = useOgdApi();
@@ -33,10 +32,6 @@ const funnelKitSteps = [
 
 function mergeTagCode(banner: EmailBanner): string {
   return `{{ogd_banner_${banner.id}}}`;
-}
-
-function previewUrl(banner: EmailBanner): string {
-  return bannerPreviewUrl(banner);
 }
 
 function linkLabel(banner: EmailBanner): string {
@@ -142,16 +137,11 @@ onMounted(() => {
       <div
         v-for="item in 2"
         :key="item"
-        class="ogd:rounded-[20px] ogd:border ogd:border-gray-100 ogd:bg-white ogd:p-6"
+        class="ogd:rounded-[20px] ogd:border ogd:border-gray-100 ogd:bg-white ogd:p-5"
       >
         <div class="ogd:animate-pulse">
-          <div
-            class="ogd:h-4 ogd:w-36 ogd:rounded-md ogd:bg-gray-100"
-          ></div>
+          <div class="ogd:h-4 ogd:w-36 ogd:rounded-md ogd:bg-gray-100"></div>
           <div class="ogd:mt-2 ogd:h-3 ogd:w-48 ogd:rounded-md ogd:bg-gray-100"></div>
-          <div
-            class="ogd:mt-4 ogd:aspect-1200/630 ogd:w-full ogd:rounded-[14px] ogd:bg-gray-100"
-          ></div>
         </div>
       </div>
     </div>
@@ -372,14 +362,6 @@ onMounted(() => {
                 }}
               </button>
             </div>
-          </div>
-          <div class="ogd:mt-4 ogd:bg-gray-50 ogd:rounded-[14px] ogd:p-3">
-            <img
-              :src="previewUrl(banner)"
-              :alt="`${banner.name} preview`"
-              class="ogd:block ogd:w-full ogd:rounded-[10px] ogd:border! ogd:border-gray-100!"
-              loading="lazy"
-            />
           </div>
         </article>
       </div>
