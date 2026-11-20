@@ -140,10 +140,7 @@ const sourceOptions = computed(() => [
 
 const previewUrl = computed(() =>
   formPayload.canvas_id
-    ? bannerPreviewUrl(
-        { canvas_id: formPayload.canvas_id, map: formPayload.map },
-        sources.value,
-      )
+    ? bannerPreviewUrl({ canvas_id: formPayload.canvas_id })
     : "",
 );
 
@@ -764,8 +761,8 @@ onMounted(async () => {
               Preview
             </h2>
             <p class="ogd:mt-1! ogd:mb-0! ogd:text-sm ogd:text-gray-500">
-              {{ formPayload.canvas_name || canvas?.name || "" }} — shown with
-              sample recipient data
+              {{ formPayload.canvas_name || canvas?.name || "" }} — canvas
+              defaults shown; recipient data applies when the email is sent
             </p>
           </div>
           <div class="ogd:bg-gray-50 ogd:p-3">

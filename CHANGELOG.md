@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - FunnelKit Automations integration: personalized banner images for abandoned cart emails. Each email banner pairs a canvas with a field mapping (customer name, cart total, first product title/price/image, and more) and appears as a merge tag (`{{ogd_banner_…}}`) in FunnelKit's email builder merge tags picker; at send time the tag renders the recipient's own cart data into the banner via the CDN and optionally wraps it in the cart recovery link
-- New "Email Banners" admin page (list + editor with canvas picker, auto-mapped fields, custom-text values, link mode, and a live sample-data preview)
+- New "Email Banners" admin page (list + editor with canvas picker, auto-mapped fields, custom-text values, link mode, and a live preview showing the canvas defaults — recipient data applies when the email is sent)
 - REST endpoints `GET/POST /ogdynamic/v1/email-banners` and `PUT/DELETE /ogdynamic/v1/email-banners/{id}`
 - Universal `[ogdynamic_banner]` shortcode for rendering a banner anywhere shortcodes are processed
 - Integration-agnostic source architecture: banner mappings store abstract source keys from a shared catalog, each email-plugin integration declares which keys it can resolve and extracts its send-time data into a normalized `SendContext` (resolution and formatting are centralized, so integrations cannot drift apart), and the mapping dropdown shows only what the active integrations can actually fill — so the same banner works unchanged across integrations

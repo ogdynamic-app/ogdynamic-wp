@@ -215,41 +215,6 @@ class EmailBanners {
 	}
 
 	/**
-	 * Builds preview params from the source samples plus custom values.
-	 *
-	 * Used by the email-builder preview and the admin live preview so the
-	 * banner shows lifelike content without a real recipient.
-	 *
-	 * @param array $banner Banner payload.
-	 * @return array Param values keyed by canvas field.
-	 */
-	public static function sample_params( array $banner ): array {
-		$samples = array();
-		foreach ( IntegrationManager::sources() as $source ) {
-			$samples[ $source['key'] ] = $source['sample'];
-		}
-
-		$params = array();
-
-		foreach ( (array) ( $banner['map'] ?? array() ) as $entry ) {
-			$attr_key = (string) ( $entry['attr_key'] ?? '' );
-			$key      = (string) ( $entry['key'] ?? '' );
-
-			if ( '' === $attr_key ) {
-				continue;
-			}
-
-			if ( 'custom' === $key ) {
-				$params[ $attr_key ] = (string) ( $entry['value'] ?? '' );
-			} elseif ( '' !== $key && isset( $samples[ $key ] ) ) {
-				$params[ $attr_key ] = $samples[ $key ];
-			}
-		}
-
-		return $params;
-	}
-
-	/**
 	 * Applies merge-tag/shortcode attribute overrides onto resolved params.
 	 *
 	 * Any attribute named like a canvas field (and not reserved) wins over

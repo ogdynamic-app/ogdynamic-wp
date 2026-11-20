@@ -27,88 +27,81 @@ class EmailBannerSources {
 	public const CORE_KEYS = array( 'site_name', 'site_tagline' );
 
 	/**
-	 * Full source catalog for the mapping UI and previews.
+	 * Full source catalog for the mapping UI.
 	 *
-	 * @return array[] Each entry: key, label, group, type ('text'|'image'), sample.
+	 * Entries carry no sample values on purpose: previews render the
+	 * canvas with its designed defaults, and placeholder person/product
+	 * data in previews misleads users into thinking it is real content.
+	 *
+	 * @return array[] Each entry: key, label, group, type ('text'|'image').
 	 */
 	public static function catalog(): array {
 		return array(
 			array(
-				'key'    => 'customer_first_name',
-				'label'  => __( 'Customer first name', 'ogdynamic' ),
-				'group'  => __( 'Customer', 'ogdynamic' ),
-				'type'   => 'text',
-				'sample' => 'Sarah',
+				'key'   => 'customer_first_name',
+				'label' => __( 'Customer first name', 'ogdynamic' ),
+				'group' => __( 'Customer', 'ogdynamic' ),
+				'type'  => 'text',
 			),
 			array(
-				'key'    => 'customer_last_name',
-				'label'  => __( 'Customer last name', 'ogdynamic' ),
-				'group'  => __( 'Customer', 'ogdynamic' ),
-				'type'   => 'text',
-				'sample' => 'Johnson',
+				'key'   => 'customer_last_name',
+				'label' => __( 'Customer last name', 'ogdynamic' ),
+				'group' => __( 'Customer', 'ogdynamic' ),
+				'type'  => 'text',
 			),
 			array(
-				'key'    => 'customer_full_name',
-				'label'  => __( 'Customer full name', 'ogdynamic' ),
-				'group'  => __( 'Customer', 'ogdynamic' ),
-				'type'   => 'text',
-				'sample' => 'Sarah Johnson',
+				'key'   => 'customer_full_name',
+				'label' => __( 'Customer full name', 'ogdynamic' ),
+				'group' => __( 'Customer', 'ogdynamic' ),
+				'type'  => 'text',
 			),
 			array(
-				'key'    => 'cart_total',
-				'label'  => __( 'Cart total', 'ogdynamic' ),
-				'group'  => __( 'Cart', 'ogdynamic' ),
-				'type'   => 'text',
-				'sample' => '$129.00',
+				'key'   => 'cart_total',
+				'label' => __( 'Cart total', 'ogdynamic' ),
+				'group' => __( 'Cart', 'ogdynamic' ),
+				'type'  => 'text',
 			),
 			array(
-				'key'    => 'cart_items_count',
-				'label'  => __( 'Cart items count', 'ogdynamic' ),
-				'group'  => __( 'Cart', 'ogdynamic' ),
-				'type'   => 'text',
-				'sample' => '2',
+				'key'   => 'cart_items_count',
+				'label' => __( 'Cart items count', 'ogdynamic' ),
+				'group' => __( 'Cart', 'ogdynamic' ),
+				'type'  => 'text',
 			),
 			array(
-				'key'    => 'product_title',
-				'label'  => __( 'First product title', 'ogdynamic' ),
-				'group'  => __( 'First product', 'ogdynamic' ),
-				'type'   => 'text',
-				'sample' => 'Aurora Table Lamp',
+				'key'   => 'product_title',
+				'label' => __( 'First product title', 'ogdynamic' ),
+				'group' => __( 'First product', 'ogdynamic' ),
+				'type'  => 'text',
 			),
 			array(
-				'key'    => 'product_price',
-				'label'  => __( 'First product price', 'ogdynamic' ),
-				'group'  => __( 'First product', 'ogdynamic' ),
-				'type'   => 'text',
-				'sample' => '$129.00',
+				'key'   => 'product_price',
+				'label' => __( 'First product price', 'ogdynamic' ),
+				'group' => __( 'First product', 'ogdynamic' ),
+				'type'  => 'text',
 			),
 			array(
-				'key'    => 'product_image',
-				'label'  => __( 'First product image', 'ogdynamic' ),
-				'group'  => __( 'First product', 'ogdynamic' ),
-				'type'   => 'image',
-				'sample' => '',
+				'key'   => 'product_image',
+				'label' => __( 'First product image', 'ogdynamic' ),
+				'group' => __( 'First product', 'ogdynamic' ),
+				'type'  => 'image',
 			),
 			array(
-				'key'    => 'product_sku',
-				'label'  => __( 'First product SKU', 'ogdynamic' ),
-				'group'  => __( 'First product', 'ogdynamic' ),
-				'type'   => 'text',
-				'sample' => 'AURORA-LAMP',
+				'key'   => 'product_sku',
+				'label' => __( 'First product SKU', 'ogdynamic' ),
+				'group' => __( 'First product', 'ogdynamic' ),
+				'type'  => 'text',
 			),
 			array(
-				'key'    => 'site_name',
-				'label'  => __( 'Site name', 'ogdynamic' ),
-				'group'  => __( 'Site', 'ogdynamic' ),
-				'type'   => 'text',
-				'sample' => get_bloginfo( 'name' ),
+				'key'   => 'site_name',
+				'label' => __( 'Site name', 'ogdynamic' ),
+				'group' => __( 'Site', 'ogdynamic' ),
+				'type'  => 'text',
 			),
 			array(
-				'key'    => 'site_tagline',
-				'label'  => __( 'Site tagline', 'ogdynamic' ),
-				'group'  => __( 'Site', 'ogdynamic' ),
-				'type'   => 'text',
-				'sample' => get_bloginfo( 'description' ),
+				'key'   => 'site_tagline',
+				'label' => __( 'Site tagline', 'ogdynamic' ),
+				'group' => __( 'Site', 'ogdynamic' ),
+				'type'  => 'text',
 			),
 		);
 	}

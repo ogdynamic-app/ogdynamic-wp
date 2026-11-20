@@ -109,9 +109,11 @@ class BannerTag extends \BWFAN_Merge_Tag {
 		}
 
 		if ( true === \BWFAN_Merge_Tag_Loader::get_data( 'is_preview' ) ) {
+			// Builder preview renders the plain canvas with its designed
+			// defaults — placeholder recipient data here would mislead.
 			$markup = EmailBanners::image_markup(
 				$this->banner,
-				EmailBanners::sample_params( $this->banner ),
+				array(),
 				array(
 					'link' => EmailBanners::LINK_NONE,
 					'alt'  => $this->tag_description,

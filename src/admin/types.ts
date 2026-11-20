@@ -80,8 +80,6 @@ export type EmailBannerSource = {
   group: string;
   /** `text` or `image`. */
   type: string;
-  /** Value used in previews instead of real send-time data. */
-  sample: string;
 };
 
 export type IntegrationStatus = {

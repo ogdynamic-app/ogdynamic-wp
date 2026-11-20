@@ -111,7 +111,7 @@ class IntegrationManager {
 	 * `ogdynamic_email_banner_sources` filter (entries need at least a
 	 * valid `key` and a `label`; invalid additions are dropped).
 	 *
-	 * @return array[] Catalog entries (key, label, group, type, sample).
+	 * @return array[] Catalog entries (key, label, group, type).
 	 */
 	public static function sources(): array {
 		$resolvable = array();
@@ -146,7 +146,7 @@ class IntegrationManager {
 	 * Normalizes and filters source entries coming from any source list.
 	 *
 	 * @param array[] $entries Raw source entries.
-	 * @return array[] Valid entries with sanitized key/label/group/type/sample.
+	 * @return array[] Valid entries with sanitized key/label/group/type.
 	 */
 	protected static function sanitize_source_entries( array $entries ): array {
 		$valid = array();
@@ -166,11 +166,10 @@ class IntegrationManager {
 			$type = isset( $entry['type'] ) ? sanitize_key( (string) $entry['type'] ) : 'text';
 
 			$valid[ $key ] = array(
-				'key'    => $key,
-				'label'  => $label,
-				'group'  => isset( $entry['group'] ) ? sanitize_text_field( (string) $entry['group'] ) : '',
-				'type'   => in_array( $type, array( 'text', 'image' ), true ) ? $type : 'text',
-				'sample' => isset( $entry['sample'] ) && is_string( $entry['sample'] ) ? sanitize_text_field( $entry['sample'] ) : '',
+				'key'   => $key,
+				'label' => $label,
+				'group' => isset( $entry['group'] ) ? sanitize_text_field( (string) $entry['group'] ) : '',
+				'type'  => in_array( $type, array( 'text', 'image' ), true ) ? $type : 'text',
 			);
 		}
 

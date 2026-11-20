@@ -3,7 +3,6 @@ import { computed, onMounted, ref, shallowRef } from "vue";
 import { RouterLink, useRouter } from "vue-router";
 import type {
   EmailBanner,
-  EmailBannerSource,
   EmailBannersPayload,
   IntegrationStatus,
 } from "../types";
@@ -16,7 +15,6 @@ const deleteApi = useOgdApi();
 
 const isLoading = ref(true);
 const banners = shallowRef<EmailBanner[]>([]);
-const sources = shallowRef<EmailBannerSource[]>([]);
 const integrations = shallowRef<IntegrationStatus[]>([]);
 
 const copied = ref("");
@@ -38,7 +36,7 @@ function mergeTagCode(banner: EmailBanner): string {
 }
 
 function previewUrl(banner: EmailBanner): string {
-  return bannerPreviewUrl(banner, sources.value);
+  return bannerPreviewUrl(banner);
 }
 
 function linkLabel(banner: EmailBanner): string {
@@ -69,7 +67,6 @@ async function load() {
   try {
     const payload = await api.request<EmailBannersPayload>("email-banners");
     banners.value = payload.data ?? [];
-    sources.value = payload.sources ?? [];
     integrations.value = payload.integrations ?? [];
   } catch {
     // Error handled by API error state.
