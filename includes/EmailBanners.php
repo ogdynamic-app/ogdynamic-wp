@@ -22,9 +22,27 @@ use OGDynamic\Integrations\IntegrationManager;
 class EmailBanners {
 
 	/**
-	 * Option key holding every banner keyed by id.
+	 * Option key prefix for per-banner options: `ogdy_banner_{id}`.
+	 *
+	 * One option per banner (the Template::option_name() pattern) instead
+	 * of one blob: saves touch only their own row — no read-modify-write
+	 * of every banner — and merge-tag registration still lists them with
+	 * a single prefix query.
 	 */
-	public const OPTION = 'email_banners';
+	public const OPTION_PREFIX = 'banner_';
+
+	/**
+	 * Pre-release storage: one option holding every banner keyed by id.
+	 * Migrated to per-banner options on boot.
+	 */
+	public const LEGACY_OPTION = 'email_banners';
+
+	/**
+	 * Per-request banner cache (null = not loaded yet).
+	 *
+	 * @var array|null
+	 */
+	private static ?array $cache = null;
 
 	/**
 	 * Default rendered width of the banner image in emails.
@@ -94,12 +112,43 @@ class EmailBanners {
 	/**
 	 * Gets every banner.
 	 *
+	 * One prefix query (the Template::get_activated_post_types() pattern),
+	 * memoized per request — merge-tag registration reads this on every
+	 * FunnelKit send.
+	 *
 	 * @return array Banners keyed by id.
 	 */
 	public static function get_all(): array {
-		$banners = Settings::get( self::OPTION, array() );
+		if ( null !== self::$cache ) {
+			return self::$cache;
+		}
 
-		return is_array( $banners ) ? $banners : array();
+		global $wpdb;
+
+		$prefix = Settings::PREFIX . self::OPTION_PREFIX;
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT option_value FROM {$wpdb->options} WHERE option_name LIKE %s ORDER BY option_name ASC",
+				$wpdb->esc_like( $prefix ) . '%'
+			),
+			ARRAY_A
+		);
+
+		$banners = array();
+
+		foreach ( (array) $rows as $row ) {
+			$banner = maybe_unserialize( $row['option_value'] );
+
+			if ( is_array( $banner ) && ! empty( $banner['id'] ) ) {
+				$banners[ (string) $banner['id'] ] = $banner;
+			}
+		}
+
+		self::$cache = $banners;
+
+		return $banners;
 	}
 
 	/**
@@ -109,9 +158,15 @@ class EmailBanners {
 	 * @return array|null Banner payload or null when unknown.
 	 */
 	public static function get( string $id ): ?array {
-		$banners = self::get_all();
+		$id = strtolower( $id );
 
-		return isset( $banners[ $id ] ) && is_array( $banners[ $id ] ) ? $banners[ $id ] : null;
+		if ( ! preg_match( '/^[a-f0-9]{12}$/', $id ) ) {
+			return null;
+		}
+
+		$banner = Settings::get( self::OPTION_PREFIX . $id );
+
+		return is_array( $banner ) ? $banner : null;
 	}
 
 	/**
@@ -121,18 +176,18 @@ class EmailBanners {
 	 * @return array Saved banner.
 	 */
 	public static function save( array $banner ): array {
-		$banners = self::get_all();
+		$exists = ! empty( $banner['id'] ) && null !== self::get( (string) $banner['id'] );
 
-		if ( empty( $banner['id'] ) || ! isset( $banners[ $banner['id'] ] ) ) {
+		if ( ! $exists ) {
 			$banner['id']         = self::new_id();
 			$banner['created_at'] = current_time( 'mysql' );
 		}
 
 		$banner['updated_at'] = current_time( 'mysql' );
 
-		$banners[ $banner['id'] ] = $banner;
+		Settings::update( self::OPTION_PREFIX . $banner['id'], $banner );
 
-		Settings::update( self::OPTION, $banners );
+		self::$cache = null;
 
 		return $banner;
 	}
@@ -144,26 +199,53 @@ class EmailBanners {
 	 * @return bool True when a banner was removed.
 	 */
 	public static function delete( string $id ): bool {
-		$banners = self::get_all();
-
-		if ( ! isset( $banners[ $id ] ) ) {
+		if ( null === self::get( $id ) ) {
 			return false;
 		}
 
-		unset( $banners[ $id ] );
+		Settings::delete( self::OPTION_PREFIX . strtolower( $id ) );
 
-		Settings::update( self::OPTION, $banners );
+		self::$cache = null;
 
 		return true;
 	}
 
 	/**
-	 * Generates a new banner id (12 lowercase hex chars).
+	 * Generates a new, unused banner id (12 lowercase hex chars).
 	 *
 	 * @return string Banner id.
 	 */
 	public static function new_id(): string {
-		return bin2hex( random_bytes( 6 ) );
+		do {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.rand_seeded_random_bytes -- random_bytes is CSPRNG, not seedable mt_rand.
+			$id = bin2hex( random_bytes( 6 ) );
+		} while ( null !== self::get( $id ) );
+
+		return $id;
+	}
+
+	/**
+	 * Moves banners from the pre-release single-option storage into
+	 * per-banner options. No-op once the legacy option is gone.
+	 *
+	 * @return void
+	 */
+	public static function migrate_legacy(): void {
+		$legacy = Settings::get( self::LEGACY_OPTION, array() );
+
+		if ( ! is_array( $legacy ) || array() === $legacy ) {
+			return;
+		}
+
+		foreach ( $legacy as $banner ) {
+			if ( is_array( $banner ) && ! empty( $banner['id'] ) ) {
+				Settings::update( self::OPTION_PREFIX . $banner['id'], $banner );
+			}
+		}
+
+		Settings::delete( self::LEGACY_OPTION );
+
+		self::$cache = null;
 	}
 
 	/**
