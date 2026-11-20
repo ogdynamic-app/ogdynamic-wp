@@ -94,6 +94,12 @@ Personalized banner images for abandoned-cart emails. An **email banner** pairs 
 - **Universal shortcode**: `[ogdynamic_banner id="…" width alt link key="value" …]` (registered unconditionally) — outside a send, dynamic sources resolve empty and canvas defaults render; non-reserved attrs become params.
 - **Sources catalog** (`Integrations/EmailBannerSources.php`, shared): Customer first/last/full name, Cart total/items count, First product title/price/image (URL — image-type canvas fields)/SKU, Site name/tagline. Map entries may also be `custom` (static value) or `''` (canvas default). Only whitelisted sources resolve — email addresses never enter URLs. FunnelKit's context builder lives in `Integrations/FunnelKit/Sources.php`; a future integration implements the `Integration` interface (availability, init, `resolvable_sources()`, `send_context()`) and gets the catalog, dropdown, previews, REST, and shortcode for free.
 - Admin SPA list/edit views build preview URLs with the same sample data via `src/admin/bannerPreview.ts` (mirrors `EmailBanners::sample_params()`).
+- **Extension filters** (for other plugins; every filter falls back to its pre-filter value when a callback returns garbage — one broken extension can never disable banner rendering site-wide):
+  - `ogdynamic_integrations` — register additional `Integration` implementations (class strings; entries not implementing the interface are ignored). Booted, status-carded, and context-dispatched like built-ins — this is how a third party can ship its own email-plugin adapter as a separate plugin
+  - `ogdynamic_email_banner_sources` — offer additional mapping sources (`{key, label, group?, type: 'text'|'image', sample?}` entries appended to the offered list; keys are sanitized `a-z0-9_` 2–64 chars, invalid entries dropped). REST map validation accepts whatever keys are offered, and the `sample` flows into previews
+  - `ogdynamic_email_banner_resolved_sources` — fill/override resolved source values at render time (`$resolved, $keys`); non-string values are dropped
+  - `ogdynamic_email_banner_params` — adjust canvas params before the render URL is built (`$params, $banner`; e.g. append UTM tags). Everything returned passes the same sanitization (key regex, length caps, non-scalars dropped)
+  - `ogdynamic_email_banner_markup` — adjust the final `<img>`/link markup (`$markup, $banner, $params, $args`); non-string returns ignored
 
 ### Template Fields
 

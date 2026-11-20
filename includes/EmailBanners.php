@@ -225,7 +225,7 @@ class EmailBanners {
 	 */
 	public static function sample_params( array $banner ): array {
 		$samples = array();
-		foreach ( EmailBannerSources::catalog() as $source ) {
+		foreach ( IntegrationManager::sources() as $source ) {
 			$samples[ $source['key'] ] = $source['sample'];
 		}
 
@@ -284,11 +284,22 @@ class EmailBanners {
 	/**
 	 * Builds the CDN render URL for a banner.
 	 *
+	 * The `ogdynamic_email_banner_params` filter lets other plugins adjust
+	 * the canvas params before the URL is built (e.g. append UTM tags);
+	 * everything it returns passes the same sanitization as core values.
+	 *
 	 * @param array $banner Banner payload.
 	 * @param array $params Resolved param values keyed by canvas field.
 	 * @return string Render URL.
 	 */
 	public static function banner_url( array $banner, array $params ): string {
+		$filtered = apply_filters( 'ogdynamic_email_banner_params', $params, $banner );
+
+		// A broken filter keeps the core params rather than clearing them.
+		if ( is_array( $filtered ) ) {
+			$params = $filtered;
+		}
+
 		$params = self::filter_params( $params );
 
 		$url = untrailingslashit( OGDYNAMIC_CDN ) . '/c/' . rawurlencode( (string) $banner['canvas_id'] );
@@ -355,7 +366,18 @@ class EmailBanners {
 			);
 		}
 
-		return $img;
+		/**
+		 * Lets other plugins adjust the final banner markup (e.g. wrap it
+		 * in tracking or fallback markup for dark-mode email clients).
+		 *
+		 * @param string $img    Final image (or linked image) HTML.
+		 * @param array  $banner Banner payload.
+		 * @param array  $params Resolved param values keyed by canvas field.
+		 * @param array  $args   Render args (alt, link, width).
+		 */
+		$filtered = apply_filters( 'ogdynamic_email_banner_markup', $img, $banner, $params, $args );
+
+		return is_string( $filtered ) ? $filtered : $img;
 	}
 
 	/**
@@ -368,7 +390,11 @@ class EmailBanners {
 	}
 
 	/**
-	 * Drops empty values and sorts keys so identical inputs give identical URLs.
+	 * Drops empty and non-scalar values and sorts keys so identical inputs
+	 * give identical URLs.
+	 *
+	 * Non-strings are cast, not passed through: extension filters can
+	 * return anything, but canvas render URLs are flat strings only.
 	 *
 	 * @param array $params Resolved params.
 	 * @return array Filtered params.
@@ -381,15 +407,19 @@ class EmailBanners {
 				$value = trim( $value );
 			}
 
-			if ( '' === $value || null === $value ) {
+			if ( is_numeric( $value ) && ! is_string( $value ) ) {
+				$value = (string) $value;
+			}
+
+			if ( ! is_string( $value ) || '' === $value ) {
 				continue;
 			}
 
-			if ( ! preg_match( '/^[A-Za-z0-9_.\-]{1,64}$/', (string) $key ) ) {
+			if ( ! preg_match( '/^[A-Za-z0-9_.\-]{1,64}$/', $key ) ) {
 				continue;
 			}
 
-			if ( is_string( $value ) && strlen( $value ) > 2000 ) {
+			if ( strlen( $value ) > 2000 ) {
 				$value = substr( $value, 0, 2000 );
 			}
 

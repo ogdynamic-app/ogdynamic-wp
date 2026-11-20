@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - REST endpoints `GET/POST /ogdynamic/v1/email-banners` and `PUT/DELETE /ogdynamic/v1/email-banners/{id}`
 - Universal `[ogdynamic_banner]` shortcode for rendering a banner anywhere shortcodes are processed
 - Integration-agnostic source architecture: banner mappings store abstract source keys from a shared catalog, each email-plugin integration declares which keys it can resolve and extracts its send-time data into a normalized `SendContext` (resolution and formatting are centralized, so integrations cannot drift apart), and the mapping dropdown shows only what the active integrations can actually fill — so the same banner works unchanged across integrations
+- Extension filters for other plugins: `ogdynamic_integrations` (register integration adapters), `ogdynamic_email_banner_sources` / `_resolved_sources` (offer and fill custom data sources), `ogdynamic_email_banner_params` (adjust render-URL params, e.g. UTMs) and `ogdynamic_email_banner_markup` (adjust final markup); every filter falls back to its pre-filter value when a callback returns garbage
 
 ## [0.5.0] - 2026-11-14
 

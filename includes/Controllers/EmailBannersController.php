@@ -389,13 +389,20 @@ class EmailBannersController {
 	/**
 	 * Gets the known source keys.
 	 *
-	 * The whole shared catalog — not just the active integrations' keys —
-	 * so banners saved while an integration was active stay editable while
-	 * it is temporarily deactivated.
+	 * The whole shared catalog plus any third-party sources offered via
+	 * the `ogdynamic_email_banner_sources` filter — not just the active
+	 * integrations' keys, so banners saved while an integration was active
+	 * stay editable while it is temporarily deactivated.
 	 *
 	 * @return string[] Source keys.
 	 */
 	protected static function source_keys(): array {
-		return EmailBannerSources::keys();
+		$keys = EmailBannerSources::keys();
+
+		foreach ( IntegrationManager::sources() as $source ) {
+			$keys[] = $source['key'];
+		}
+
+		return array_values( array_unique( $keys ) );
 	}
 }
