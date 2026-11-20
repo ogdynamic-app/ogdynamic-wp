@@ -28,11 +28,23 @@ use OGDynamic\Integrations\SendContext;
 class Sources {
 
 	/**
-	 * Captured cart row (null = no capture yet this render).
+	 * Captured cart row for the render stage (null = none this render).
 	 *
 	 * @var object|null
 	 */
 	protected static ?object $cart = null;
+
+	/**
+	 * Snapshot of the captured cart for the wp_mail stage.
+	 *
+	 * The render capture is cleared as soon as the banner action has
+	 * fired, but the `[ogdynamic_banner]` token in the email body is
+	 * expanded later, on the wp_mail filter — this snapshot carries the
+	 * cart there and is consumed by exactly one mail send.
+	 *
+	 * @var object|null
+	 */
+	protected static ?object $mail_cart = null;
 
 	/**
 	 * Capture callback for `cartbounty_automation_unsubscribe_url`.
@@ -69,10 +81,47 @@ class Sources {
 		$cart = $wpdb->get_row( $sql );
 
 		if ( null !== $cart && ! empty( $cart->email ) ) {
-			self::$cart = $cart;
+			self::$cart      = $cart;
+			self::$mail_cart = $cart;
 		}
 
 		return $url;
+	}
+
+	/**
+	 * Consumes the mail-stage cart snapshot.
+	 *
+	 * Returned only when the mail recipient matches the captured cart's
+	 * email — a later test/preview send to another address must never
+	 * receive a previous recipient's personalization. The snapshot is
+	 * consumed (one mail per capture) either way.
+	 *
+	 * @param string $to Mail recipient.
+	 * @return object|null Cart row when the recipient matches, else null.
+	 */
+	public static function mail_cart( string $to ): ?object {
+		$cart            = self::$mail_cart;
+		self::$mail_cart = null;
+
+		if ( null === $cart ) {
+			return null;
+		}
+
+		return 0 === strcasecmp( (string) $to, (string) $cart->email ) ? $cart : null;
+	}
+
+	/**
+	 * Restores a mail-stage snapshot as the render cart.
+	 *
+	 * Token expansion on the wp_mail filter happens after render_banner()
+	 * cleared the render capture; this puts the recipient-matched cart
+	 * back so context resolution personalizes the token correctly.
+	 *
+	 * @param object $cart Cart row.
+	 * @return void
+	 */
+	public static function set_render_cart( object $cart ): void {
+		self::$cart = $cart;
 	}
 
 	/**

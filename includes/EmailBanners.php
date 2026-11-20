@@ -94,6 +94,10 @@ class EmailBanners {
 		$params = self::apply_attr_overrides( $params, $atts );
 
 		$link = isset( $atts['link'] ) ? (string) $atts['link'] : '';
+		if ( '' === $link ) {
+			// Fall back to the banner's saved link setting, like the merge tags do.
+			$link = (string) ( $banner['link'] ?? self::LINK_RECOVERY );
+		}
 		$args = array(
 			'alt'   => isset( $atts['alt'] ) && '' !== $atts['alt'] ? sanitize_text_field( (string) $atts['alt'] ) : $banner['name'],
 			'link'  => self::LINK_RECOVERY === $link ? self::LINK_RECOVERY : esc_url_raw( $link ),

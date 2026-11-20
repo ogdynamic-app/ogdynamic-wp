@@ -9,6 +9,8 @@ import type {
 import { useOgdApi } from "../composables/useOgdApi";
 import CopyButton from "../components/CopyButton.vue";
 
+const CARTBOUNTY_TOKEN = "[ogdynamic_banner]";
+
 const router = useRouter();
 const api = useOgdApi();
 const deleteApi = useOgdApi();
@@ -352,6 +354,24 @@ onMounted(() => {
             >
               Create a banner above to insert it into CartBounty emails.
             </p>
+            <div
+              v-if="cartBounty.available && banners.length > 0"
+              class="ogd:mt-4 ogd:rounded-[14px] ogd:border ogd:border-gray-100 ogd:bg-gray-50 ogd:p-4"
+            >
+              <p
+                class="ogd:m-0 ogd:text-[12.5px] ogd:font-semibold ogd:tracking-wide ogd:text-gray-400 ogd:uppercase"
+              >
+                Place it exactly where you want
+              </p>
+              <p
+                class="ogd:mt-2 ogd:mb-3 ogd:text-[13px] ogd:leading-relaxed ogd:text-gray-500"
+              >
+                Paste this token anywhere in the CartBounty email text — the
+                banner renders there instead of the default spot, personalized
+                for every recipient.
+              </p>
+              <CopyButton :value="CARTBOUNTY_TOKEN" copied-label="Copied!" />
+            </div>
             <div
               v-if="integrationApi.error.value"
               class="ogd:mt-3 ogd:rounded-[14px] ogd:border ogd:border-destructive/25 ogd:bg-destructive/5 ogd:px-3.5 ogd:py-3 ogd:text-destructive"
