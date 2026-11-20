@@ -32,12 +32,6 @@ class EmailBanners {
 	public const OPTION_PREFIX = 'banner_';
 
 	/**
-	 * Pre-release storage: one option holding every banner keyed by id.
-	 * Migrated to per-banner options on boot.
-	 */
-	public const LEGACY_OPTION = 'email_banners';
-
-	/**
 	 * Per-request banner cache (null = not loaded yet).
 	 *
 	 * @var array|null
@@ -222,30 +216,6 @@ class EmailBanners {
 		} while ( null !== self::get( $id ) );
 
 		return $id;
-	}
-
-	/**
-	 * Moves banners from the pre-release single-option storage into
-	 * per-banner options. No-op once the legacy option is gone.
-	 *
-	 * @return void
-	 */
-	public static function migrate_legacy(): void {
-		$legacy = Settings::get( self::LEGACY_OPTION, array() );
-
-		if ( ! is_array( $legacy ) || array() === $legacy ) {
-			return;
-		}
-
-		foreach ( $legacy as $banner ) {
-			if ( is_array( $banner ) && ! empty( $banner['id'] ) ) {
-				Settings::update( self::OPTION_PREFIX . $banner['id'], $banner );
-			}
-		}
-
-		Settings::delete( self::LEGACY_OPTION );
-
-		self::$cache = null;
 	}
 
 	/**
