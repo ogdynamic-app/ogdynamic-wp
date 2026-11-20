@@ -53,17 +53,15 @@ interface Integration {
 	public static function resolvable_sources(): array;
 
 	/**
-	 * Resolves one source key from the integration's own send-time data.
+	 * Builds the normalized send context from the integration's own
+	 * send-time data — extraction only; formatting and resolution of
+	 * catalog keys happen centrally in SendContext.
 	 *
-	 * @param string $key Source key.
-	 * @return string Value, or an empty string when unavailable.
-	 */
-	public static function resolve_source( string $key ): string;
-
-	/**
-	 * Gets the cart recovery URL for the email currently being sent.
+	 * Outside a send the context is empty (SendContext::from_array with
+	 * no data), which is how the manager picks the integration that is
+	 * mid-send.
 	 *
-	 * @return string URL, or an empty string when unavailable.
+	 * @return SendContext
 	 */
-	public static function recovery_url(): string;
+	public static function send_context(): SendContext;
 }

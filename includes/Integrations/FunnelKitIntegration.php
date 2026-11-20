@@ -108,22 +108,12 @@ class FunnelKitIntegration implements Integration {
 	}
 
 	/**
-	 * Resolves one source key from FunnelKit's send-time data.
+	 * Builds the send context from FunnelKit's send-time data.
 	 *
-	 * @param string $key Source key.
-	 * @return string Value, or an empty string when unavailable.
+	 * @return SendContext
 	 */
-	public static function resolve_source( string $key ): string {
-		return Sources::resolve( $key );
-	}
-
-	/**
-	 * Gets the FunnelKit cart recovery URL for the email being sent.
-	 *
-	 * @return string URL, or an empty string outside a send.
-	 */
-	public static function recovery_url(): string {
-		return Sources::recovery_url();
+	public static function send_context(): SendContext {
+		return Sources::context();
 	}
 
 	/**

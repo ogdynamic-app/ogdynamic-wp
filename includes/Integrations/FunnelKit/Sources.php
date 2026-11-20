@@ -1,65 +1,55 @@
 <?php
 /**
- * FunnelKit banner data source resolver.
+ * FunnelKit send context builder.
  *
  * @package OGD
  */
 
 namespace OGDynamic\Integrations\FunnelKit;
 
+use OGDynamic\Integrations\SendContext;
+
 /**
  * Class Sources
  *
- * Resolves the shared email banner source catalog (see
- * Integrations\EmailBannerSources) against FunnelKit's per-recipient
- * send-time data: the data its merge tag loader exposes while it renders
- * an email (cart_details, contact id). Everything degrades to empty
- * strings outside a send, so banners fall back to the canvas defaults
- * instead of breaking.
+ * Extracts FunnelKit's per-recipient send-time data — whatever its merge
+ * tag loader exposes while it renders an email (cart_details, contact
+ * id) — into a normalized SendContext. Extraction only: formatting and
+ * catalog-key resolution happen centrally in SendContext. Outside a
+ * send, everything resolves to an empty context.
  */
 class Sources {
 
 	/**
-	 * Resolves a source key against FunnelKit's current send-time data.
+	 * Builds the send context from FunnelKit's current send-time data.
 	 *
-	 * @param string $key Source key.
-	 * @return string Resolved value, or an empty string when unavailable.
+	 * @return SendContext
 	 */
-	public static function resolve( string $key ): string {
-		switch ( $key ) {
-			case 'customer_first_name':
-				return self::customer_name( 'first' );
-			case 'customer_last_name':
-				return self::customer_name( 'last' );
-			case 'customer_full_name':
-				return trim( self::customer_name( 'first' ) . ' ' . self::customer_name( 'last' ) );
-			case 'cart_total':
-				return self::format_price( self::cart_field( 'total' ) );
-			case 'cart_items_count':
-				$count = 0;
-				foreach ( self::cart_items() as $item ) {
-					$count += (int) ( $item['quantity'] ?? 0 );
-				}
-				return $count > 0 ? (string) $count : '';
-			case 'product_title':
-				$product = self::first_product();
-				return null !== $product ? $product->get_name() : '';
-			case 'product_price':
-				$product = self::first_product();
-				return null !== $product ? self::format_price( $product->get_price() ) : '';
-			case 'product_image':
-				$product = self::first_product();
-				if ( null === $product || ! function_exists( 'wp_get_attachment_url' ) ) {
-					return '';
-				}
-				$attachment_id = $product->get_image_id();
-				return $attachment_id ? (string) wp_get_attachment_url( $attachment_id ) : '';
-			case 'product_sku':
-				$product = self::first_product();
-				return null !== $product ? (string) $product->get_sku() : '';
+	public static function context(): SendContext {
+		$cart = self::cart_details();
+
+		if ( array() === $cart ) {
+			return SendContext::from_array( array() );
 		}
 
-		return '';
+		$items   = isset( $cart['items'] ) ? maybe_unserialize( $cart['items'] ) : array();
+		$items   = is_array( $items ) ? $items : array();
+		$product = self::first_product( $items );
+
+		return SendContext::from_array(
+			array(
+				'customer_first_name' => self::customer_name( 'first', $cart ),
+				'customer_last_name'  => self::customer_name( 'last', $cart ),
+				'cart_total'          => isset( $cart['total'] ) ? maybe_unserialize( $cart['total'] ) : null,
+				'cart_currency'       => isset( $cart['currency'] ) ? maybe_unserialize( $cart['currency'] ) : null,
+				'cart_items_count'    => self::items_count( $items ),
+				'first_product_title' => null !== $product ? $product->get_name() : null,
+				'first_product_price' => null !== $product && null !== $product->get_price() ? (float) $product->get_price() : null,
+				'first_product_image' => self::product_image( $product ),
+				'first_product_sku'   => null !== $product ? $product->get_sku() : null,
+				'recovery_url'        => self::recovery_url( $cart ),
+			)
+		);
 	}
 
 	/**
@@ -67,7 +57,7 @@ class Sources {
 	 *
 	 * @return array Cart details or an empty array outside a send.
 	 */
-	public static function cart_details(): array {
+	protected static function cart_details(): array {
 		if ( ! class_exists( 'BWFAN_Merge_Tag_Loader' ) ) {
 			return array();
 		}
@@ -87,57 +77,55 @@ class Sources {
 	/**
 	 * Gets the FunnelKit cart recovery URL for the email being sent.
 	 *
-	 * @return string URL, or an empty string outside a send.
+	 * @param array $cart Cart details.
+	 * @return string|null URL, or null outside a send.
 	 */
-	public static function recovery_url(): string {
+	protected static function recovery_url( array $cart ): ?string {
 		if ( ! class_exists( 'BWFAN_Common' ) || ! method_exists( 'BWFAN_Common', 'wc_get_cart_recovery_url' ) ) {
-			return '';
+			return null;
 		}
 
-		$cart = self::cart_details();
-		if ( array() === $cart || empty( $cart['token'] ) ) {
-			return '';
+		if ( empty( $cart['token'] ) ) {
+			return null;
 		}
 
 		$url = \BWFAN_Common::wc_get_cart_recovery_url( $cart['token'], '', '', array() );
 
-		return is_string( $url ) ? $url : '';
+		return is_string( $url ) && '' !== $url ? $url : null;
 	}
 
 	/**
-	 * Gets one field of the current cart row.
+	 * Sums the cart's item quantities.
 	 *
-	 * @param string $key Cart row key.
-	 * @return string|null Value or null when absent.
+	 * @param array $items Cart items.
+	 * @return int|null Total quantity, or null when the cart has no items.
 	 */
-	protected static function cart_field( string $key ) {
-		$cart = self::cart_details();
+	protected static function items_count( array $items ): ?int {
+		if ( array() === $items ) {
+			return null;
+		}
 
-		return isset( $cart[ $key ] ) ? maybe_unserialize( $cart[ $key ] ) : null;
-	}
+		$count = 0;
 
-	/**
-	 * Gets the current cart's items.
-	 *
-	 * @return array Items, each optionally carrying a WC_Product under 'data'.
-	 */
-	protected static function cart_items(): array {
-		$items = self::cart_field( 'items' );
+		foreach ( $items as $item ) {
+			$count += (int) ( $item['quantity'] ?? 0 );
+		}
 
-		return is_array( $items ) ? $items : array();
+		return $count > 0 ? $count : null;
 	}
 
 	/**
 	 * Gets the first cart item's product.
 	 *
+	 * @param array $items Cart items.
 	 * @return \WC_Product|null Product or null when the cart has no usable items.
 	 */
-	protected static function first_product(): ?\WC_Product {
+	protected static function first_product( array $items ): ?\WC_Product {
 		if ( ! class_exists( 'WC_Product' ) ) {
 			return null;
 		}
 
-		foreach ( self::cart_items() as $item ) {
+		foreach ( $items as $item ) {
 			if ( isset( $item['data'] ) && $item['data'] instanceof \WC_Product ) {
 				return $item['data'];
 			}
@@ -147,18 +135,33 @@ class Sources {
 	}
 
 	/**
-	 * Resolves the recipient's name.
+	 * Gets the product's featured image URL.
+	 *
+	 * @param \WC_Product|null $product Product.
+	 * @return string|null URL, or null when unavailable.
+	 */
+	protected static function product_image( ?\WC_Product $product ): ?string {
+		if ( null === $product || ! function_exists( 'wp_get_attachment_url' ) ) {
+			return null;
+		}
+
+		$attachment_id = $product->get_image_id();
+
+		return $attachment_id ? wp_get_attachment_url( $attachment_id ) : null;
+	}
+
+	/**
+	 * Extracts the recipient's name.
 	 *
 	 * Captured checkout fields win (the FunnelKit-native cart source);
 	 * the CRM contact is the fallback for logged-in carts where checkout
-	 * data was never entered.
+	 * data was never entered. Raw value — presentation is centralized.
 	 *
 	 * @param string $which 'first' or 'last'.
-	 * @return string Name or an empty string.
+	 * @param array  $cart  Cart details.
+	 * @return string|null Name or null when unknown.
 	 */
-	protected static function customer_name( string $which ): string {
-		$cart = self::cart_details();
-
+	protected static function customer_name( string $which, array $cart ): ?string {
 		if ( ! empty( $cart['checkout_data'] ) ) {
 			$checkout = json_decode( (string) $cart['checkout_data'], true );
 
@@ -167,7 +170,7 @@ class Sources {
 				: '';
 
 			if ( is_string( $field ) && '' !== $field ) {
-				return ucwords( $field );
+				return $field;
 			}
 		}
 
@@ -178,29 +181,11 @@ class Sources {
 				if ( $contact instanceof \WooFunnels_Contact && $contact->get_id() > 0 ) {
 					$value = 'last' === $which ? $contact->get_l_name() : $contact->get_f_name();
 
-					return is_string( $value ) ? $value : '';
+					return is_string( $value ) && '' !== $value ? $value : null;
 				}
 			}
 		}
 
-		return '';
-	}
-
-	/**
-	 * Formats a price email- and URL-safely.
-	 *
-	 * @param mixed $price Raw price.
-	 * @return string Formatted price, or an empty string when unavailable.
-	 */
-	protected static function format_price( $price ): string {
-		if ( null === $price || '' === $price ) {
-			return '';
-		}
-
-		if ( ! function_exists( 'wc_price' ) ) {
-			return (string) $price;
-		}
-
-		return wp_strip_all_tags( (string) wc_price( (float) $price ) );
+		return null;
 	}
 }

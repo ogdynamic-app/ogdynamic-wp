@@ -88,35 +88,64 @@ class IntegrationManager {
 	}
 
 	/**
-	 * Resolves a source key against the active integrations' send-time data.
+	 * Gets the send context of the active integration being sent.
 	 *
-	 * Core sources resolve directly; everything else asks each active
-	 * integration in registration order and keeps the first non-empty
-	 * value — an integration mid-send has data, the others resolve empty.
+	 * Asks each active integration in registration order and keeps the
+	 * first context that carries data — an integration mid-send has data,
+	 * the others build empty contexts. Deliberately NOT memoized across
+	 * the request: batch senders render several recipients per process,
+	 * and a cached context would leak one recipient's data into the next
+	 * email (use resolve_sources() to batch several keys into one build).
 	 *
-	 * @param string $key Source key.
-	 * @return string Value, or an empty string when nobody can resolve it.
+	 * @return SendContext Context (empty outside a send).
 	 */
-	public static function resolve_source( string $key ): string {
-		$core = EmailBannerSources::core_resolve( $key );
-
-		if ( '' !== $core ) {
-			return $core;
-		}
-
+	public static function context(): SendContext {
 		foreach ( self::INTEGRATIONS as $integration ) {
 			if ( ! $integration::is_available() ) {
 				continue;
 			}
 
-			$value = $integration::resolve_source( $key );
+			$context = $integration::send_context();
 
-			if ( '' !== $value && null !== $value ) {
-				return $value;
+			if ( ! $context->is_empty() ) {
+				return $context;
 			}
 		}
 
-		return '';
+		return SendContext::from_array( array() );
+	}
+
+	/**
+	 * Resolves several source keys with a single context build.
+	 *
+	 * Core sources resolve directly; everything else is resolved and
+	 * formatted by the shared SendContext — one build for the whole
+	 * banner, so a mapping never pays the extraction cost per field.
+	 *
+	 * @param string[] $keys Catalog source keys.
+	 * @return array<string, string> Resolved values keyed by source key.
+	 */
+	public static function resolve_sources( array $keys ): array {
+		$context  = self::context();
+		$resolved = array();
+
+		foreach ( $keys as $key ) {
+			$core = EmailBannerSources::core_resolve( (string) $key );
+
+			$resolved[ (string) $key ] = '' !== $core ? $core : $context->get( (string) $key );
+		}
+
+		return $resolved;
+	}
+
+	/**
+	 * Resolves a source key against the current send context.
+	 *
+	 * @param string $key Source key.
+	 * @return string Value, or an empty string when nobody can resolve it.
+	 */
+	public static function resolve_source( string $key ): string {
+		return self::resolve_sources( array( $key ) )[ $key ] ?? '';
 	}
 
 	/**
@@ -125,18 +154,6 @@ class IntegrationManager {
 	 * @return string URL, or an empty string when unavailable.
 	 */
 	public static function recovery_url(): string {
-		foreach ( self::INTEGRATIONS as $integration ) {
-			if ( ! $integration::is_available() ) {
-				continue;
-			}
-
-			$url = $integration::recovery_url();
-
-			if ( '' !== $url ) {
-				return $url;
-			}
-		}
-
-		return '';
+		return self::context()->recovery_url();
 	}
 }

@@ -169,17 +169,31 @@ class EmailBanners {
 	/**
 	 * Resolves a banner's mapping into canvas params.
 	 *
-	 * Dynamic sources resolve through the active integrations' send-time
-	 * data (IntegrationManager dispatch, empty outside an email send);
-	 * custom values pass through as-is.
+	 * Dynamic sources resolve through one batched IntegrationManager
+	 * dispatch (a single send-context build for the whole mapping, empty
+	 * outside an email send); custom values pass through as-is.
 	 *
 	 * @param array $banner Banner payload.
 	 * @return array Param values keyed by canvas field.
 	 */
 	public static function resolve_params( array $banner ): array {
+		$map  = (array) ( $banner['map'] ?? array() );
+		$keys = array();
+
+		foreach ( $map as $entry ) {
+			$attr_key = (string) ( $entry['attr_key'] ?? '' );
+			$key      = (string) ( $entry['key'] ?? '' );
+
+			if ( '' !== $attr_key && '' !== $key && 'custom' !== $key ) {
+				$keys[] = $key;
+			}
+		}
+
+		$resolved = IntegrationManager::resolve_sources( array_unique( $keys ) );
+
 		$params = array();
 
-		foreach ( (array) ( $banner['map'] ?? array() ) as $entry ) {
+		foreach ( $map as $entry ) {
 			$attr_key = (string) ( $entry['attr_key'] ?? '' );
 			$key      = (string) ( $entry['key'] ?? '' );
 
@@ -193,7 +207,7 @@ class EmailBanners {
 			}
 
 			if ( '' !== $key ) {
-				$params[ $attr_key ] = IntegrationManager::resolve_source( $key );
+				$params[ $attr_key ] = $resolved[ $key ] ?? '';
 			}
 		}
 
