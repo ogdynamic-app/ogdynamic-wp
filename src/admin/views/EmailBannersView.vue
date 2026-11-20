@@ -264,7 +264,7 @@ onMounted(() => {
           No email banners yet
         </h2>
         <p
-          class="ogd:mx-auto ogd:mb-5 ogd:mt-0 ogd:max-w-100 ogd:text-center! ogd:text-sm ogd:leading-relaxed ogd:text-gray-500"
+          class="ogd:mb-5 ogd:mt-0 ogd:text-center! ogd:text-sm ogd:leading-relaxed ogd:text-gray-500"
         >
           Pick a canvas, map its fields to cart and customer data, and drop
           the banner into your abandoned cart emails with one merge tag.
