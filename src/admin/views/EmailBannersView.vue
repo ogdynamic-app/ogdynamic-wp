@@ -25,10 +25,10 @@ const funnelKit = computed<IntegrationStatus | undefined>(() =>
 );
 
 const funnelKitSteps = [
-  "Open FunnelKit Automations and create (or edit) an abandoned cart email.",
+  "Open FunnelKit Automations and edit your abandoned cart automation email (or create one from the Cart Abandoned trigger).",
   "Click inside any text block, then open the Merge tags picker above the editor.",
-  "Pick the ogdynamic group and select your banner by name — the tag is inserted.",
-  "Send a test email. Every recipient sees a banner personalized with their cart.",
+  "Pick the ogdynamic group and select your banner by name — the tag is inserted for you.",
+  "Send a test email to check the placement, then activate the automation.",
 ];
 
 function mergeTagCode(banner: EmailBanner): string {
@@ -240,6 +240,14 @@ onMounted(() => {
           >
             <li v-for="step in funnelKitSteps" :key="step">{{ step }}</li>
           </ol>
+          <p
+            class="ogd:mt-3 ogd:mb-0 ogd:border-t ogd:border-gray-100 ogd:pt-3 ogd:text-[12.5px] ogd:leading-relaxed ogd:text-gray-500"
+          >
+            Every real send renders the banner personalized with the
+            recipient's own name, products and cart total — and clicking it
+            restores their cart. Test emails and builder previews show the
+            canvas defaults.
+          </p>
         </div>
       </article>
 

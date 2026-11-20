@@ -7,6 +7,7 @@ import type {
   EmailBanner,
   EmailBannerSource,
   EmailBannersPayload,
+  IntegrationStatus,
   OGDCanvas,
   OGDCanvasSummary,
 } from "../types";
@@ -41,6 +42,7 @@ const success = ref("");
 const copied = ref("");
 
 const sources = shallowRef<EmailBannerSource[]>([]);
+const integrations = shallowRef<IntegrationStatus[]>([]);
 
 const canvases = shallowRef<OGDCanvasSummary[]>([]);
 const canvas = shallowRef<OGDCanvas>();
@@ -148,6 +150,23 @@ const mergeTagCode = computed(() =>
   bannerExists.value ? `{{ogd_banner_${bannerId.value}}}` : "",
 );
 
+const funnelKit = computed<IntegrationStatus | undefined>(() =>
+  integrations.value.find((item) => item.slug === "funnelkit"),
+);
+
+const funnelKitSteps = computed(() => [
+  "Open FunnelKit Automations and edit your abandoned cart automation email (or create one from the Cart Abandoned trigger).",
+  "Click inside any text block, then open the Merge tags picker above the editor.",
+  "Pick the ogdynamic group and select this banner by name — the tag is inserted for you.",
+  "Send a test email to check the placement, then activate the automation.",
+]);
+
+const mergeTagOverrideExample = computed(() =>
+  mergeTagCode.value
+    ? `${mergeTagCode.value.slice(0, -2)} coupon="SAVE10"}}`
+    : "",
+);
+
 // An image-type canvas field only renders when its value is a URL, so
 // mapping it to a text source (or vice versa) is almost always a mistake.
 const imageFieldMismatches = computed(() =>
@@ -195,6 +214,7 @@ async function loadBanner() {
   );
 
   sources.value = payload.sources ?? [];
+  integrations.value = payload.integrations ?? [];
 
   if (isNew.value) {
     return;
@@ -843,6 +863,98 @@ onMounted(async () => {
           >
             {{ success }}
           </div>
+        </div>
+
+        <!-- How to insert this banner into a FunnelKit email. -->
+        <div
+          v-if="bannerExists"
+          class="ogd:rounded-[20px] ogd:border ogd:border-gray-100 ogd:bg-white ogd:p-6"
+        >
+          <h2
+            class="ogd:m-0! ogd:font-display ogd:text-base ogd:font-bold ogd:text-gray-900"
+          >
+            Use this banner in FunnelKit
+          </h2>
+
+          <template v-if="funnelKit?.available">
+            <p
+              class="ogd:mt-2! ogd:mb-4 ogd:text-sm ogd:leading-relaxed ogd:text-gray-500"
+            >
+              Every real send renders this banner personalized with the
+              recipient's own name, products and cart total — and clicking it
+              restores their cart. Test emails and builder previews show the
+              canvas defaults.
+            </p>
+
+            <ol
+              class="ogd:m-0 ogd:list-decimal ogd:pl-5 ogd:text-sm ogd:leading-relaxed ogd:text-gray-600"
+            >
+              <li v-for="step in funnelKitSteps" :key="step">{{ step }}</li>
+            </ol>
+
+            <div
+              class="ogd:mt-4 ogd:rounded-[14px] ogd:border ogd:border-gray-100 ogd:bg-gray-50 ogd:p-4"
+            >
+              <p
+                class="ogd:m-0 ogd:text-[12.5px] ogd:font-semibold ogd:tracking-wide ogd:text-gray-400 ogd:uppercase"
+              >
+                Or paste the tag anywhere in the email body
+              </p>
+              <button
+                class="ogd:mt-2 ogd:inline-flex ogd:w-full ogd:cursor-pointer ogd:items-center ogd:justify-between ogd:gap-3 ogd:rounded-xl ogd:border ogd:border-gray-200 ogd:bg-white ogd:px-3.5 ogd:py-2.5 ogd:text-left ogd:text-[13px] ogd:font-medium ogd:text-gray-700 ogd:transition ogd:hover:border-primary ogd:hover:text-primary"
+                type="button"
+                @click="copyMergeTag"
+              >
+                <code class="ogd:truncate">{{ mergeTagCode }}</code>
+                <span
+                  class="ogd:shrink-0 ogd:text-[11.5px] ogd:font-semibold ogd:tracking-wide ogd:text-primary ogd:uppercase"
+                >
+                  {{ copied ? "Copied!" : "Copy" }}
+                </span>
+              </button>
+            </div>
+
+            <div
+              class="ogd:mt-4 ogd:rounded-[14px] ogd:border ogd:border-primary/20 ogd:bg-primary-soft ogd:px-3.5 ogd:py-3 ogd:text-[13px] ogd:leading-relaxed ogd:text-gray-600"
+            >
+              <span class="ogd:font-semibold ogd:text-gray-900">
+                Advanced:
+              </span>
+              override one field for a single email without editing this
+              banner — add the canvas field name as a tag attribute, e.g.
+              <code class="ogd:rounded-md ogd:bg-white ogd:px-1.5 ogd:py-0.5 ogd:text-[12px] ogd:text-gray-800">
+                {{ mergeTagOverrideExample }}
+              </code>
+              <span v-if="mergeTagCode">
+                — also works with
+                <code class="ogd:rounded-md ogd:bg-white ogd:px-1.5 ogd:py-0.5 ogd:text-[12px] ogd:text-gray-800">link</code>,
+                <code class="ogd:rounded-md ogd:bg-white ogd:px-1.5 ogd:py-0.5 ogd:text-[12px] ogd:text-gray-800">width</code>
+                and
+                <code class="ogd:rounded-md ogd:bg-white ogd:px-1.5 ogd:py-0.5 ogd:text-[12px] ogd:text-gray-800">alt</code>.</span
+              >
+            </div>
+          </template>
+
+          <template v-else>
+            <p
+              class="ogd:mt-2! ogd:mb-4 ogd:text-sm ogd:leading-relaxed ogd:text-gray-500"
+            >
+              Your merge tag is ready — install and activate
+              <a
+                class="ogd:font-semibold ogd:text-primary ogd:underline"
+                href="https://wordpress.org/plugins/wp-marketing-automations/"
+                target="_blank"
+                rel="noreferrer"
+                >FunnelKit Automations</a
+              >
+              to insert it into its abandoned cart emails. The tag also works
+              as the WordPress shortcode
+              <code class="ogd:rounded-md ogd:bg-gray-100 ogd:px-1.5 ogd:py-0.5 ogd:text-[12px] ogd:text-gray-800">
+                [ogdynamic_banner id="{{ bannerId }}"]
+              </code>
+              anywhere shortcodes are processed.
+            </p>
+          </template>
         </div>
       </div>
     </div>
