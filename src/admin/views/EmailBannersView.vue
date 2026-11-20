@@ -7,6 +7,7 @@ import type {
   IntegrationStatus,
 } from "../types";
 import { useOgdApi } from "../composables/useOgdApi";
+import CopyButton from "../components/CopyButton.vue";
 
 const router = useRouter();
 const api = useOgdApi();
@@ -16,7 +17,6 @@ const isLoading = ref(true);
 const banners = shallowRef<EmailBanner[]>([]);
 const integrations = shallowRef<IntegrationStatus[]>([]);
 
-const copied = ref("");
 const confirmingDelete = ref("");
 
 const funnelKit = computed<IntegrationStatus | undefined>(() =>
@@ -40,20 +40,6 @@ function linkLabel(banner: EmailBanner): string {
   }
 
   return banner.link === "none" ? "No link" : "Custom link";
-}
-
-async function copy(key: string, value: string) {
-  try {
-    await navigator.clipboard.writeText(value);
-    copied.value = key;
-    setTimeout(() => {
-      if (copied.value === key) {
-        copied.value = "";
-      }
-    }, 1500);
-  } catch {
-    // Clipboard unavailable — silently ignore.
-  }
 }
 
 async function load() {
@@ -316,26 +302,7 @@ onMounted(() => {
               </p>
             </div>
             <div class="ogd:flex ogd:flex-wrap ogd:gap-2.5">
-              <button
-                class="ogd:inline-flex ogd:cursor-pointer ogd:items-center ogd:gap-2 ogd:rounded-full ogd:border ogd:border-gray-200 ogd:bg-white ogd:px-3.5 ogd:py-2 ogd:text-[12.5px] ogd:font-medium ogd:text-gray-700 ogd:transition ogd:hover:border-primary ogd:hover:text-primary"
-                type="button"
-                @click="copy(banner.id, mergeTagCode(banner))"
-              >
-                <svg
-                  class="ogd:size-3.5"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  aria-hidden="true"
-                >
-                  <rect width="14" height="14" x="8" y="8" rx="2" />
-                  <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
-                </svg>
-                {{ copied === banner.id ? "Copied!" : mergeTagCode(banner) }}
-              </button>
+              <CopyButton :value="mergeTagCode(banner)" />
               <RouterLink
                 class="ogd:inline-flex ogd:items-center ogd:rounded-full ogd:border ogd:border-gray-200 ogd:bg-white ogd:px-3.5 ogd:py-2 ogd:text-[12.5px] ogd:font-semibold ogd:text-gray-700 ogd:no-underline ogd:transition ogd:hover:border-primary ogd:hover:text-primary"
                 :to="`/email-banners/${banner.id}`"

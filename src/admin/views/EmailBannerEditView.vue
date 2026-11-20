@@ -14,6 +14,7 @@ import type {
 import { useOgdApi } from "../composables/useOgdApi";
 import { useOgdCloudApi } from "../composables/useOgdCloudApi";
 import { bannerPreviewUrl } from "../bannerPreview";
+import CopyButton from "../components/CopyButton.vue";
 import FormField from "../components/forms/FormField.vue";
 import TextInput from "../components/forms/TextInput.vue";
 import SelectInput from "../components/forms/SelectInput.vue";
@@ -39,7 +40,6 @@ const bannerId = computed(() => String(route.params.id || ""));
 const isLoading = ref(true);
 const bannerExists = ref(false);
 const success = ref("");
-const copied = ref("");
 
 const sources = shallowRef<EmailBannerSource[]>([]);
 const integrations = shallowRef<IntegrationStatus[]>([]);
@@ -474,22 +474,6 @@ async function remove() {
   confirmingDelete.value = "yes";
 }
 
-async function copyMergeTag() {
-  if (!mergeTagCode.value) {
-    return;
-  }
-
-  try {
-    await navigator.clipboard.writeText(mergeTagCode.value);
-    copied.value = "yes";
-    setTimeout(() => {
-      copied.value = "";
-    }, 1500);
-  } catch {
-    // Clipboard unavailable — silently ignore.
-  }
-}
-
 const canSave = computed(
   () =>
     formPayload.name.trim() !== "" &&
@@ -526,27 +510,7 @@ onMounted(async () => {
       >
         {{ isNew ? "Create Email Banner" : "Edit Email Banner" }}
       </h1>
-      <button
-        v-if="mergeTagCode"
-        class="ogd:inline-flex ogd:cursor-pointer ogd:items-center ogd:gap-2 ogd:rounded-full ogd:border ogd:border-gray-200 ogd:bg-white ogd:px-3.5 ogd:py-2 ogd:text-[12.5px] ogd:font-medium ogd:text-gray-700 ogd:transition ogd:hover:border-primary ogd:hover:text-primary"
-        type="button"
-        @click="copyMergeTag"
-      >
-        <svg
-          class="ogd:size-3.5"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          aria-hidden="true"
-        >
-          <rect width="14" height="14" x="8" y="8" rx="2" />
-          <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
-        </svg>
-        {{ copied ? "Copied!" : mergeTagCode }}
-      </button>
+      <CopyButton v-if="mergeTagCode" :value="mergeTagCode" />
     </div>
     <p
       class="ogd:mt-2 ogd:mb-6 ogd:max-w-140 ogd:text-[15px] ogd:leading-relaxed ogd:text-gray-500"
@@ -900,18 +864,9 @@ onMounted(async () => {
               >
                 Or paste the tag anywhere in the email body
               </p>
-              <button
-                class="ogd:mt-2 ogd:inline-flex ogd:w-full ogd:cursor-pointer ogd:items-center ogd:justify-between ogd:gap-3 ogd:rounded-xl ogd:border ogd:border-gray-200 ogd:bg-white ogd:px-3.5 ogd:py-2.5 ogd:text-left ogd:text-[13px] ogd:font-medium ogd:text-gray-700 ogd:transition ogd:hover:border-primary ogd:hover:text-primary"
-                type="button"
-                @click="copyMergeTag"
-              >
-                <code class="ogd:truncate">{{ mergeTagCode }}</code>
-                <span
-                  class="ogd:shrink-0 ogd:text-[11.5px] ogd:font-semibold ogd:tracking-wide ogd:text-primary ogd:uppercase"
-                >
-                  {{ copied ? "Copied!" : "Copy" }}
-                </span>
-              </button>
+              <div class="ogd:mt-2">
+                <CopyButton :value="mergeTagCode" />
+              </div>
             </div>
 
             <div
