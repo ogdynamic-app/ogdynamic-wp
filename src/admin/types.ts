@@ -51,6 +51,53 @@ export type CursorPage<T> = {
   meta?: { next_cursor?: string | null };
 };
 
+export type EmailBannerMapEntry = {
+  attr_key: string;
+  /** Source key, `custom`, or `''` (canvas default). */
+  key: string;
+  /** Static value used when `key` is `custom`. */
+  value?: string;
+};
+
+export type EmailBanner = {
+  id: string;
+  name: string;
+  canvas_id: string;
+  canvas_name: string;
+  width: number;
+  height: number;
+  /** `recovery`, `none`, or a URL. */
+  link: string;
+  display_width: number;
+  map: EmailBannerMapEntry[];
+  created_at: string;
+  updated_at: string;
+};
+
+export type EmailBannerSource = {
+  key: string;
+  label: string;
+  group: string;
+  /** `text` or `image`. */
+  type: string;
+  /** Value used in previews instead of real send-time data. */
+  sample: string;
+};
+
+export type IntegrationStatus = {
+  slug: string;
+  label: string;
+  available: boolean;
+  active: boolean;
+  note: string;
+};
+
+export type EmailBannersPayload = {
+  data: EmailBanner[];
+  sources: EmailBannerSource[];
+  integrations: IntegrationStatus[];
+};
+
 export interface User {
   id: number;
   name: string;

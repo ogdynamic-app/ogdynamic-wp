@@ -37,6 +37,11 @@
 | `Admin` | `includes/Admin.php` | Admin page & asset loading |
 | `Block` | `includes/Block.php` | Registers/renders the `ogdynamic/canvas-image` block |
 | `BlockController` | `includes/Controllers/BlockController.php` | Block REST endpoints (canvas proxy, generate & save) |
+| `EmailBanners` | `includes/EmailBanners.php` | Email banner model, CDN URL/markup builders, `[ogdynamic_banner]` shortcode |
+| `EmailBannerSources` | `includes/Integrations/EmailBannerSources.php` | Shared "abandoned cart data" source catalog + core (site) resolver |
+| `IntegrationManager` | `includes/Integrations/IntegrationManager.php` | Email-plugin integration registry (boots integrations, merges source declarations, dispatches send-time resolution) |
+| `FunnelKitIntegration` | `includes/Integrations/FunnelKitIntegration.php` | Registers one FunnelKit merge tag per banner |
+| `EmailBannersController` | `includes/Controllers/EmailBannersController.php` | Email banner CRUD REST endpoints |
 
 ### Data Flow
 
@@ -63,6 +68,10 @@ Templates are ogdynamic **canvases** (the design feature has been removed from t
 - `GET /ogdynamic/v1/block/canvases` - Public canvases for the block (`edit_posts`); accepts optional `cursor` and returns `data[]` + `next_cursor` (null when exhausted)
 - `GET /ogdynamic/v1/block/canvases/{id}` - Canvas incl. `override_fields` for the block (`edit_posts`)
 - `POST /ogdynamic/v1/block/generate` - `canvas_id`, `params` (flat string map), optional `post_id`, `alt`, `format` (`png`|`webp`|`jpeg`, default `png`); saves the rendered image to the media library (`edit_posts` + `upload_files`)
+- `GET /ogdynamic/v1/email-banners` - All banners with the source catalog and integration statuses (`manage_options`)
+- `POST /ogdynamic/v1/email-banners` - Create banner: `name` (required), `canvas_id` (ULID), `map` (`{attr_key, key, value?}` — `key` is a source key, `custom`, or `''`), `link` (`recovery`|`none`|URL, default `recovery`), `display_width` (100–1200, default 600), plus canvas snapshot `canvas_name`/`width`/`height` (`manage_options`)
+- `PUT /ogdynamic/v1/email-banners/{id}` - Update banner (same args)
+- `DELETE /ogdynamic/v1/email-banners/{id}` - Delete banner
 
 ### Canvas Image Block
 
@@ -72,6 +81,18 @@ Templates are ogdynamic **canvases** (the design feature has been removed from t
 - Attributes JSON stores `canvasId`, `canvasName`, `params`, `width`, `height`, `format`, `alt`, `attachmentId`, `imageUrl`, `savedQuery`, `savedAt`. `savedQuery` is compared with the current params to show "Unsaved changes" and disable the button when nothing changed.
 - Server: `BlockController` proxies `v1/canvases` with the stored OAuth token (editors never get the token; permission `edit_posts`, generate also needs `upload_files`). Generate sideloads the CDN image via `download_url()` + `media_handle_sideload()`, tags the attachment with `_ogdynamic_hash` / `_ogdynamic_canvas_id` / `_ogdynamic_params` / `_ogdynamic_source_url`, and reuses an existing attachment with the same hash (md5 of canvas id + canvas `updated_at` revision + sorted flat query) instead of downloading again; a non-PNG `format` appends `config[format]=FORMAT` to the render URL and hash. Only public canvases are accepted.
 - Frontend: `Block::render()` (dynamic block, `save` returns null) outputs `<figure>` + `wp_get_attachment_image()` of `attachmentId` (falls back to `imageUrl`); nothing is output until an image has been saved.
+
+### Email Banners (FunnelKit Integration)
+
+Personalized banner images for abandoned-cart emails. An **email banner** pairs a canvas with a field mapping (stored in the single option `ogdy_email_banners`, keyed by 12-hex banner id). Admin UI: `src/admin/views/EmailBannersView.vue` (list + FunnelKit status card) and `EmailBannerEditView.vue` (canvas picker + field mapping + live sample preview), route `/email-banners`.
+
+- **Merge tags**: `FunnelKitIntegration` (available when `BWFAN_Merge_Tag_Loader` exists) hooks `bwfan_merge_tags_loaded` and registers **one FunnelKit merge tag per banner** under the group "ogdynamic": `{{ogd_banner_{id}}}`. Registration reads only the local option — **no SaaS calls** — so it is cheap and cron-safe (FunnelKit sends via ActionScheduler/cron; `IntegrationManager::register()` boots unconditionally from `OGDynamic::boot()`). Per-banner tags use `class_alias(BannerTag::class, 'OgdFkTag_{ID}')` (`BannerTag extends \BWFAN_Merge_Tag`, loadable only while FunnelKit is active) — but the banner payload is passed to each instance via `BannerTag::$next_banner` at registration time because **PHP 8.5 resolves `static::class` on an aliased class to the original class name** (a static map keyed by `static::class` — the pattern the countdownbuilder plugin uses — collapses every alias onto one entry there), and `get_slug()` is overridden with the tag name so registry slugs stay unique per banner.
+- **Send time** (`BannerTag::parse_shortcode()`): merge tags receive per-recipient data via `BWFAN_Merge_Tag_Loader::get_data()` — `cart_details` (fallback `BWFAN_Model_Abandonedcarts::get()` via `cart_abandoned_id`), `contact_id`, `is_preview`. The tag returns the full email-safe `<img>` markup (`EmailBanners::image_markup()`), optionally wrapped in the cart recovery URL. URL-only rendering: the CDN renders at email open, zero send-time downloads.
+- **Source architecture (integration-agnostic by design)**: the banner mapping stores abstract source keys (`customer_first_name`, `product_title`, …) defined in the **shared catalog** `Integrations/EmailBannerSources.php` — never integration-specific data — so saved mappings stay portable across integrations. Each `Integration` declares `resolvable_sources()` (which catalog keys it can fill at send time), `resolve_source()` (fills a key from its own data model — FunnelKit: customer names from `checkout_data['fields']` with the `WooFunnels_Contact` fallback; first cart item's `WC_Product` for title/price/SKU/image URL; `wc_price` stripped of tags), and `recovery_url()`. `IntegrationManager::sources()` builds the mapping-UI dropdown as core sources (site name/tagline, resolved from plain WP data with no integration) **plus the union of active integrations' declared keys** — so deactivating an integration honestly shrinks the dropdown, while REST map validation accepts the *full* catalog (banners saved earlier stay editable). `IntegrationManager::resolve_source()`/`recovery_url()` dispatch at send time: core first, then each active integration in registration order, first non-empty wins (an integration mid-send has data; the others resolve empty).
+- **Attribute overrides**: any tag attr named like a canvas field overrides that param for the send, e.g. `{{ogd_banner_abc coupon="SAVE10"}}`; `link`/`width`/`alt` override the saved settings. In the FunnelKit builder (`is_preview`) the banner renders with the catalog **sample data** (Sarah / Aurora Table Lamp / $129.00).
+- **Universal shortcode**: `[ogdynamic_banner id="…" width alt link key="value" …]` (registered unconditionally) — outside a send, dynamic sources resolve empty and canvas defaults render; non-reserved attrs become params.
+- **Sources catalog** (`Integrations/EmailBannerSources.php`, shared): Customer first/last/full name, Cart total/items count, First product title/price/image (URL — image-type canvas fields)/SKU, Site name/tagline. Map entries may also be `custom` (static value) or `''` (canvas default). Only whitelisted sources resolve — email addresses never enter URLs. FunnelKit's resolver lives in `Integrations/FunnelKit/Sources.php`; a future integration brings only its own resolver for the same keys plus a `resolvable_sources()` declaration.
+- Admin SPA list/edit views build preview URLs with the same sample data via `src/admin/bannerPreview.ts` (mirrors `EmailBanners::sample_params()`).
 
 ### Template Fields
 

@@ -35,3 +35,4 @@ npm-debug.log*
 # Assets (generated)
 assets/
 !src/admin/assets/
+.zcode

@@ -11,6 +11,10 @@ export const adminRoutes = [
     component: () => import("./views/TemplatesView.vue"),
   },
   {
+    ...adminNavigation[2],
+    component: () => import("./views/EmailBannersView.vue"),
+  },
+  {
     path: "/connection",
     name: "connection",
     label: "Connection",
@@ -21,6 +25,12 @@ export const adminRoutes = [
     name: "template-post-type",
     label: "Template Mapping",
     component: () => import("./views/TemplatePostTypeView.vue"),
+  },
+  {
+    path: "/email-banners/:id",
+    name: "email-banner-edit",
+    label: "Email Banner",
+    component: () => import("./views/EmailBannerEditView.vue"),
   },
 ] as const;
 
