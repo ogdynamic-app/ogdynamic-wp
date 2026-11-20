@@ -117,7 +117,7 @@ onMounted(() => {
         </p>
       </div>
       <RouterLink
-        class="ogd:inline-flex ogd:cursor-pointer ogd:items-center ogd:justify-center ogd:gap-2 ogd:rounded-full ogd:border ogd:border-transparent ogd:bg-primary ogd:px-4.5 ogd:py-2.5 ogd:text-[13px] ogd:font-semibold ogd:text-white ogd:no-underline ogd:transition ogd:hover:border-primary-hover ogd:hover:bg-primary-hover"
+        class="ogd:inline-flex ogd:cursor-pointer ogd:items-center ogd:justify-center ogd:gap-2 ogd:rounded-full ogd:border ogd:border-transparent ogd:bg-primary ogd:px-4.5 ogd:py-2.5 ogd:text-[13px] ogd:font-semibold ogd:text-white! ogd:no-underline ogd:transition ogd:hover:border-primary-hover ogd:hover:bg-primary-hover"
         to="/email-banners/new"
       >
         <svg
@@ -294,7 +294,7 @@ onMounted(() => {
           the banner into your abandoned cart emails with one merge tag.
         </p>
         <RouterLink
-          class="ogd:inline-flex ogd:cursor-pointer ogd:items-center ogd:justify-center ogd:gap-2 ogd:rounded-full ogd:border ogd:border-transparent ogd:bg-primary ogd:px-4.5 ogd:py-2.5 ogd:text-[13px] ogd:font-semibold ogd:text-white ogd:no-underline ogd:transition ogd:hover:border-primary-hover ogd:hover:bg-primary-hover"
+          class="ogd:inline-flex ogd:cursor-pointer ogd:items-center ogd:justify-center ogd:gap-2 ogd:rounded-full ogd:border ogd:border-transparent ogd:bg-primary ogd:px-4.5 ogd:py-2.5 ogd:text-[13px] ogd:font-semibold ogd:text-white! ogd:no-underline ogd:transition ogd:hover:border-primary-hover ogd:hover:bg-primary-hover"
           to="/email-banners/new"
         >
           Create your first banner
@@ -356,7 +356,7 @@ onMounted(() => {
                 class="ogd:inline-flex ogd:cursor-pointer ogd:items-center ogd:rounded-full ogd:border ogd:px-3.5 ogd:py-2 ogd:text-[12.5px] ogd:font-semibold ogd:transition ogd:disabled:cursor-not-allowed ogd:disabled:opacity-50"
                 :class="
                   confirmingDelete === banner.id
-                    ? 'ogd:border-destructive ogd:bg-destructive ogd:text-white'
+                    ? 'ogd:border-destructive ogd:bg-destructive ogd:text-white!'
                     : 'ogd:border-gray-200 ogd:bg-white ogd:text-gray-700 ogd:hover:border-destructive ogd:hover:text-destructive'
                 "
                 type="button"
