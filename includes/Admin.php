@@ -174,7 +174,7 @@ class Admin {
 			'ogdynamic-admin',
 			'ogdynamicAdmin',
 			array(
-				'restUrl' => esc_url_raw( rest_url( 'ogdynamic/v1/' ) ),
+				'restUrl' => esc_url_raw( rest_url( RestController::NAMESPACE . '/' ) ),
 				'apiUrl'  => esc_url_raw( OGDYNAMIC_API ),
 				'cdnUrl'  => esc_url_raw( OGDYNAMIC_CDN ),
 				'nonce'   => wp_create_nonce( 'wp_rest' ),

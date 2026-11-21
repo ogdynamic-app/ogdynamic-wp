@@ -8,6 +8,7 @@
 namespace OGDynamic\Controllers;
 
 use OGDynamic\OAuth;
+use OGDynamic\RestController;
 use OGDynamic\Settings;
 use WP_Error;
 use WP_REST_Request;
@@ -76,7 +77,7 @@ class BlockController {
 	 */
 	public static function init(): void {
 		register_rest_route(
-			'ogdynamic/v1',
+			RestController::NAMESPACE,
 			'/block/canvases',
 			array(
 				'methods'             => WP_REST_Server::READABLE,
@@ -94,7 +95,7 @@ class BlockController {
 		);
 
 		register_rest_route(
-			'ogdynamic/v1',
+			RestController::NAMESPACE,
 			'/block/canvases/(?P<id>[0-9A-Za-z]{26})',
 			array(
 				'methods'             => WP_REST_Server::READABLE,
@@ -110,7 +111,7 @@ class BlockController {
 		);
 
 		register_rest_route(
-			'ogdynamic/v1',
+			RestController::NAMESPACE,
 			'/block/generate',
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,

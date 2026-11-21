@@ -13,6 +13,12 @@ use OGDynamic\Controllers\EmailBannersController;
 use OGDynamic\Controllers\TemplatesController;
 
 class RestController {
+
+	/**
+	 * REST namespace shared by every controller route.
+	 */
+	public const NAMESPACE = 'ogdynamic/v1';
+
 	public static function init(): void {
 		add_action( 'rest_api_init', array( self::class, 'register_routes' ) );
 	}

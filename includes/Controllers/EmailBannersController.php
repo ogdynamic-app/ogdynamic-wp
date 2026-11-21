@@ -10,6 +10,7 @@ namespace OGDynamic\Controllers;
 use OGDynamic\EmailBanners;
 use OGDynamic\Integrations\EmailBannerSources;
 use OGDynamic\Integrations\IntegrationManager;
+use OGDynamic\RestController;
 use WP_REST_Request;
 use WP_REST_Server;
 
@@ -29,7 +30,7 @@ class EmailBannersController {
 	 */
 	public static function init(): void {
 		register_rest_route(
-			'ogdynamic/v1',
+			RestController::NAMESPACE,
 			'/email-banners',
 			array(
 				array(
@@ -47,7 +48,7 @@ class EmailBannersController {
 		);
 
 		register_rest_route(
-			'ogdynamic/v1',
+			RestController::NAMESPACE,
 			'/email-banners/(?P<id>[a-f0-9]{12})',
 			array(
 				array(
