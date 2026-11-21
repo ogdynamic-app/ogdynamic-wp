@@ -138,9 +138,9 @@ class BannerTag extends \BWFAN_Merge_Tag {
 			$link = (string) ( $this->banner['link'] ?? CartBanners::LINK_RECOVERY );
 		}
 
-		if ( CartBanners::LINK_NONE === $link ) {
-			$link = CartBanners::LINK_NONE;
-		} elseif ( CartBanners::LINK_RECOVERY !== $link ) {
+		// The 'recovery' and 'none' markers pass through for image_markup()
+		// to resolve; only custom URLs need escaping here.
+		if ( CartBanners::LINK_RECOVERY !== $link && CartBanners::LINK_NONE !== $link ) {
 			$link = esc_url_raw( $link );
 		}
 

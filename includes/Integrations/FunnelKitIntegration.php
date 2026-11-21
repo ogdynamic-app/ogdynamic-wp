@@ -46,7 +46,7 @@ class FunnelKitIntegration implements Integration {
 	 * @return string
 	 */
 	public static function label(): string {
-		return 'FunnelKit Automations';
+		return __( 'FunnelKit Automations', 'ogdynamic' );
 	}
 
 	/**
@@ -166,15 +166,5 @@ class FunnelKitIntegration implements Integration {
 	 */
 	protected static function tag_class( string $id ): string {
 		return 'OgdFkTag_' . strtoupper( preg_replace( '/[^0-9A-Za-z]/', '', $id ) ?? '' );
-	}
-
-	/**
-	 * Builds the user-facing merge tag code for a banner.
-	 *
-	 * @param string $id Banner id.
-	 * @return string e.g. {{ogd_cart_banner_a1b2c3d4e5f6}}
-	 */
-	public static function merge_tag_code( string $id ): string {
-		return '{{ogd_cart_banner_' . $id . '}}';
 	}
 }

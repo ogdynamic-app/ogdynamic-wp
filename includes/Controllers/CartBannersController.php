@@ -219,9 +219,9 @@ class CartBannersController {
 				? max( 0, min( 200, absint( $request->get_param( 'margin_bottom' ) ) ) )
 				: (int) ( $existing['margin_bottom'] ?? 0 );
 
-			$corner_radius = $request->has_param( 'corner_radius' )
-				? max( 0, min( 40, absint( $request->get_param( 'corner_radius' ) ) ) )
-				: (int) ( $existing['corner_radius'] ?? 0 );
+			$border_radius = $request->has_param( 'border_radius' )
+				? max( 0, min( 40, absint( $request->get_param( 'border_radius' ) ) ) )
+				: (int) ( $existing['border_radius'] ?? 0 );
 
 			$cartbounty = $request->has_param( 'cartbounty' )
 				? self::sanitize_assignment( $request->get_param( 'cartbounty' ) )
@@ -240,7 +240,7 @@ class CartBannersController {
 			'display_width' => max( 100, min( 1200, $display_width ) ),
 			'margin_top'    => $margin_top,
 			'margin_bottom' => $margin_bottom,
-			'corner_radius' => $corner_radius,
+			'border_radius' => $border_radius,
 			'map'           => $map,
 			'cartbounty'    => $cartbounty,
 		);
@@ -327,7 +327,7 @@ class CartBannersController {
 				'minimum'  => 0,
 				'maximum'  => 200,
 			),
-			'corner_radius' => array(
+			'border_radius' => array(
 				'required' => false,
 				'type'     => 'integer',
 				'minimum'  => 0,

@@ -82,7 +82,7 @@ export type CartBanner = {
   /** Spacing below the image in emails (px, 0–200). */
   margin_bottom?: number;
   /** Corner rounding in px (0–40; 0 = sharp corners). */
-  corner_radius?: number;
+  border_radius?: number;
   map: CartBannerMapEntry[];
   /** CartBounty email assignment, or null when the banner is unused there. */
   cartbounty?: CartBountyAssignment | null;

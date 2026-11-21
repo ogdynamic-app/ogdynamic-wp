@@ -178,7 +178,10 @@ class Sources {
 			$contact_id = \BWFAN_Merge_Tag_Loader::get_data( 'contact_id' );
 			if ( $contact_id ) {
 				$contact = new \WooFunnels_Contact( '', '', '', (int) $contact_id );
-				if ( $contact instanceof \WooFunnels_Contact && $contact->get_id() > 0 ) {
+
+				// An unknown contact id yields a blank contact (get_id() 0),
+				// not an error — only a loaded contact carries names.
+				if ( $contact->get_id() > 0 ) {
 					$value = 'last' === $which ? $contact->get_l_name() : $contact->get_f_name();
 
 					return is_string( $value ) && '' !== $value ? $value : null;

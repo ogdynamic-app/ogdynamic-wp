@@ -102,7 +102,7 @@ class CartBanners {
 		}
 		$args = array(
 			'alt'          => isset( $atts['alt'] ) && '' !== $atts['alt'] ? sanitize_text_field( (string) $atts['alt'] ) : $banner['name'],
-			'link'         => self::LINK_RECOVERY === $link ? self::LINK_RECOVERY : esc_url_raw( $link ),
+			'link'         => ( self::LINK_RECOVERY === $link || self::LINK_NONE === $link ) ? $link : esc_url_raw( $link ),
 			'width'        => isset( $atts['width'] ) ? absint( $atts['width'] ) : 0,
 			'recovery_url' => $context->recovery_url(),
 		);
@@ -381,15 +381,11 @@ class CartBanners {
 	 *
 	 * @param array $banner Banner payload.
 	 * @param array $params Resolved param values keyed by canvas field.
-	 * @param array $args   Optional 'alt', 'link' (URL or recovery marker), 'width', 'recovery_url' (recovery URL from the caller's already-built send context, so a mid-render caller never pays a second context build), 'margin_top'/'margin_bottom' (px spacing above/below the image, clamped 0-200; both zero keeps the compact centered margin), and 'corner_radius' (px, 0-40; zero falls back to the banner's saved corner style) overrides.
+	 * @param array $args   Optional 'alt', 'link' (URL, 'recovery' marker, or 'none'), 'width', 'recovery_url' (recovery URL from the caller's already-built send context, so a mid-render caller never pays a second context build), 'margin_top'/'margin_bottom' (px spacing above/below the image, clamped 0-200; both zero keeps the compact centered margin), and 'border_radius' (px, 0-40; omit to use the banner's saved corner style, pass 0 for sharp) overrides.
 	 * @return string The image (or linked image) HTML.
 	 */
 	public static function image_markup( array $banner, array $params, array $args = array() ): string {
 		$url = self::banner_url( $banner, $params );
-
-		if ( '' === $url ) {
-			return '';
-		}
 
 		$width = (int) ( $args['width'] ?? 0 );
 		if ( $width <= 0 ) {
@@ -410,17 +406,17 @@ class CartBanners {
 		$margin_bottom = max( 0, min( 200, (int) ( $args['margin_bottom'] ?? 0 ) ) );
 
 		// Corner rounding is a style of the banner itself (like width), so
-		// the saved setting applies in every render; args may override.
-		// 0 keeps the markup free of a border-radius declaration — Outlook
-		// ignores it anyway (renders sharp), everything else rounds.
-		$corner_radius = max( 0, min( 40, (int) ( $args['corner_radius'] ?? 0 ) ) );
+		// the saved setting applies in every render; an explicit args
+		// override wins, with 0 meaning sharp. 0 radius keeps the markup
+		// free of a border-radius declaration — Outlook ignores it anyway
+		// (renders sharp), everything else rounds.
+		$border_radius = array_key_exists( 'border_radius', $args )
+			? max( 0, min( 40, (int) $args['border_radius'] ) )
+			: max( 0, min( 40, (int) ( $banner['border_radius'] ?? 0 ) ) );
 
-		if ( $corner_radius <= 0 ) {
-			$corner_radius = max( 0, min( 40, (int) ( $banner['corner_radius'] ?? 0 ) ) );
-		}
-
-		// Declarative style: CSS property names, null drops the property —
-		// new styles are one entry, never format-string surgery.
+		// Declarative style: keys are the CSS property names as emitted, and
+		// null drops the property — new styles are one entry, never name or
+		// format surgery.
 		$styles = array(
 			'width'           => '100%',
 			'max-width'       => $width . 'px',
@@ -430,7 +426,7 @@ class CartBanners {
 			'margin-right'    => 'auto',
 			'margin-bottom'   => $margin_bottom . 'px',
 			'margin-left'     => 'auto',
-			'border-radius'   => $corner_radius > 0 ? $corner_radius . 'px' : null,
+			'border-radius'   => $border_radius > 0 ? $border_radius . 'px' : null,
 			'border'          => '0',
 			'outline'         => 'none',
 			'text-decoration' => 'none',
@@ -453,7 +449,9 @@ class CartBanners {
 			$link = isset( $args['recovery_url'] ) && is_string( $args['recovery_url'] )
 				? trim( $args['recovery_url'] )
 				: self::recovery_url();
-		} elseif ( '' !== $link && ! wp_http_validate_url( $link ) ) {
+		} elseif ( self::LINK_NONE === $link || ( '' !== $link && ! wp_http_validate_url( $link ) ) ) {
+			// 'none' means unlinked; anything else that is not a valid URL
+			// is dropped rather than emitted as a broken href.
 			$link = '';
 		}
 
@@ -531,12 +529,13 @@ class CartBanners {
 	}
 
 	/**
-	 * Serializes a CSS property map into a style attribute value.
+	 * Serializes a style map into a style attribute value.
 	 *
-	 * Keys are CSS property names; null/empty values drop the property.
+	 * Keys are the CSS property names as emitted; null/empty values drop
+	 * the property.
 	 *
 	 * @param array<string, string|null> $styles CSS property map.
-	 * @return string Style value, e.g. "width: 100%; margin: 0".
+	 * @return string Style value, e.g. "width: 100%; border-radius: 14px".
 	 */
 	protected static function style_attribute( array $styles ): string {
 		$parts = array();

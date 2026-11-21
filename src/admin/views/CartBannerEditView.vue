@@ -72,7 +72,7 @@ const formPayload = reactive<{
   display_width: number;
   margin_top: string;
   margin_bottom: string;
-  corner_radius: string;
+  border_radius: string;
   map: Array<{ attr_key: string; key: string; value?: string }>;
 }>({
   name: "",
@@ -85,7 +85,7 @@ const formPayload = reactive<{
   display_width: 600,
   margin_top: "0",
   margin_bottom: "0",
-  corner_radius: "0",
+  border_radius: "0",
   map: [],
 });
 
@@ -103,7 +103,7 @@ const previewStyle = computed<Record<string, string>>(() => ({
   width: "100%",
   maxWidth: `${Math.max(100, Math.min(1200, Number(formPayload.display_width) || 600))}px`,
   height: "auto",
-  borderRadius: `${clampRadius(formPayload.corner_radius)}px`,
+  borderRadius: `${clampRadius(formPayload.border_radius)}px`,
   margin: "0 auto",
 }));
 
@@ -238,7 +238,7 @@ async function loadBanner() {
   formPayload.display_width = banner.display_width || 600;
   formPayload.margin_top = String(banner.margin_top ?? 0);
   formPayload.margin_bottom = String(banner.margin_bottom ?? 0);
-  formPayload.corner_radius = String(banner.corner_radius ?? 0);
+  formPayload.border_radius = String(banner.border_radius ?? 0);
   formPayload.map = (banner.map ?? []).map((entry) => ({ ...entry }));
 
   if (banner.link === "recovery" || banner.link === "none") {
@@ -433,7 +433,7 @@ async function save() {
     display_width: Number(formPayload.display_width) || 600,
     margin_top: clampMargin(formPayload.margin_top),
     margin_bottom: clampMargin(formPayload.margin_bottom),
-    corner_radius: clampRadius(formPayload.corner_radius),
+    border_radius: clampRadius(formPayload.border_radius),
     map: formPayload.map.filter((entry) => entry.key !== ""),
   };
 
@@ -773,7 +773,7 @@ onMounted(async () => {
           >
             <TextInput
               id="ogd-banner-corner-radius"
-              v-model="formPayload.corner_radius"
+              v-model="formPayload.border_radius"
               type="number"
             />
           </FormField>

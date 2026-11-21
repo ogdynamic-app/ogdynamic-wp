@@ -49,10 +49,11 @@ class CartBountyIntegration implements Integration {
 	 * `cartbounty_automation_unsubscribe_url` filter, which fires exactly
 	 * once per real recovery email render; the render listens on every
 	 * free-template position action and echoes the banner on the one that
-	 * matches the assigned placement. Pro's builder fires
-	 * `cartbounty_pro_automation_{template}_{position}_{step}` hooks —
-	 * those are registered too so Pro users get the banner without extra
-	 * setup, best-effort until they can be verified against a Pro install.
+	 * matches the assigned placement. Pro's documented hooks
+	 * (`cartbounty_pro_automation_{template}_{position}_{step}` — templates
+	 * light/rows/columns, the same five positions as the free template,
+	 * steps 1-4; see https://www.cartbounty.com/actions-and-filters/) run
+	 * the same router, so Pro users get the banner without extra setup.
 	 *
 	 * @return void
 	 */
@@ -70,9 +71,13 @@ class CartBountyIntegration implements Integration {
 		add_action( 'wp_ajax_email_preview', array( self::class, 'capture_preview_step' ), 9 );
 		add_action( 'wp_ajax_send_test', array( self::class, 'capture_preview_step' ), 9 );
 
+		// Pro positions mirror the free template's keys, so the placement
+		// list drives this loop. Pro also fires a footer_end action that is
+		// deliberately NOT registered: the free plugin has no equivalent
+		// position, so it would offer an assignment that never renders.
 		foreach ( array( 'light', 'rows', 'columns' ) as $template ) {
-			foreach ( array( 'after_intro', 'after_title' ) as $position ) {
-				foreach ( array( 1, 2, 3 ) as $step ) {
+			foreach ( array_keys( self::PLACEMENTS ) as $position ) {
+				foreach ( range( 1, 4 ) as $step ) {
 					add_action( "cartbounty_pro_automation_{$template}_{$position}_{$step}", array( self::class, 'render_banner' ) );
 				}
 			}
@@ -103,7 +108,7 @@ class CartBountyIntegration implements Integration {
 	 * @return string
 	 */
 	public static function label(): string {
-		return 'CartBounty';
+		return __( 'CartBounty', 'ogdynamic' );
 	}
 
 	/**
@@ -324,9 +329,8 @@ class CartBountyIntegration implements Integration {
 	/**
 	 * Whether the hook currently firing is the assignment's render spot.
 	 *
-	 * Free hooks map by placement suffix. Pro hooks only expose two
-	 * positions, so placements map to the nearest one — best-effort until
-	 * they can be verified against a Pro install.
+	 * Free hooks map by placement suffix; Pro hooks carry the same five
+	 * position keys (plus a step suffix), so both match by exact key.
 	 *
 	 * @param string $placement Assignment placement key.
 	 * @param string $hook      Hook currently firing.
@@ -338,9 +342,7 @@ class CartBountyIntegration implements Integration {
 		}
 
 		if ( 0 === strpos( $hook, 'cartbounty_pro_automation_' ) ) {
-			$position = in_array( $placement, array( 'before_title', 'after_title' ), true ) ? 'after_title' : 'after_intro';
-
-			return 1 === preg_match( '/_' . $position . '_\d+$/', $hook );
+			return 1 === preg_match( '/_' . $placement . '_\d+$/', $hook );
 		}
 
 		return 'cartbounty_automation_' . $placement === $hook;
