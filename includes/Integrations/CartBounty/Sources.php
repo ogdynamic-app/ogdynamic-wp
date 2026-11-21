@@ -94,6 +94,25 @@ class Sources {
 	}
 
 	/**
+	 * Sets the automation step for a preview/test render.
+	 *
+	 * CartBounty's "Preview email" and "Send test" AJAX render the template
+	 * without a cart, so the capture filter never fires and the step is
+	 * unknown — yet the template actions still run. The step comes from the
+	 * request instead (the same `$_POST['step']` CartBounty's own callbacks
+	 * read), letting the assigned banner render at its position with canvas
+	 * defaults. Never overrides a real capture.
+	 *
+	 * @param int $step Automation step (email) number.
+	 * @return void
+	 */
+	public static function set_preview_step( int $step ): void {
+		if ( null === self::$step ) {
+			self::$step = $step;
+		}
+	}
+
+	/**
 	 * Clears the captured cart after the email render.
 	 *
 	 * Also runs when no banner rendered (e.g. the step has no assignment)

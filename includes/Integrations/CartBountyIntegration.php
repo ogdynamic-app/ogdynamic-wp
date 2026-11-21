@@ -63,6 +63,13 @@ class CartBountyIntegration implements Integration {
 			add_action( "cartbounty_automation_{$placement}", array( self::class, 'render_banner' ) );
 		}
 
+		// Preview/test renders carry no cart, so the capture filter never
+		// fires — recover the step from the request (CartBounty's own
+		// callbacks read the same field) at priority 9, before their
+		// priority-10 renderer, so the assigned banner still shows.
+		add_action( 'wp_ajax_email_preview', array( self::class, 'capture_preview_step' ), 9 );
+		add_action( 'wp_ajax_send_test', array( self::class, 'capture_preview_step' ), 9 );
+
 		foreach ( array( 'light', 'rows', 'columns' ) as $template ) {
 			foreach ( array( 'after_intro', 'after_title' ) as $position ) {
 				foreach ( array( 1, 2, 3 ) as $step ) {
@@ -259,6 +266,26 @@ class CartBountyIntegration implements Integration {
 		// catch-all clear for renders that matched no placement.
 		if ( 'cartbounty_automation_footer_start' === $hook ) {
 			Sources::clear();
+		}
+	}
+
+	/**
+	 * Recovers the automation step for preview/test renders.
+	 *
+	 * CartBounty's "Preview email" and "Send test" AJAX requests carry the
+	 * step in `$_POST['step']`; with it, the assigned banner renders at its
+	 * position with canvas defaults (there is no cart to personalize from).
+	 * Without it — or when the field changes name — nothing renders, same
+	 * as before. Never overrides a real send's captured step.
+	 *
+	 * @return void
+	 */
+	public static function capture_preview_step(): void {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- read-only context; CartBounty's own callback verifies the nonce.
+		$step = isset( $_POST['step'] ) ? absint( wp_unslash( $_POST['step'] ) ) : -1;
+
+		if ( $step >= 0 ) {
+			Sources::set_preview_step( $step );
 		}
 	}
 
