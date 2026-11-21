@@ -197,15 +197,6 @@ async function saveAssignment() {
               <CopyButton :value="mergeTag" />
             </div>
 
-            <div
-              class="ogd:mt-4 ogd:rounded-[14px] ogd:border ogd:border-gray-100 ogd:bg-white ogd:px-3.5 ogd:py-3 ogd:text-[13px] ogd:leading-relaxed ogd:text-gray-500"
-            >
-              Prefer the picker? Click into a text block in the FunnelKit email
-              editor and open the Merge tags picker — the banner sits in the
-              ogdynamic group, searchable by its name
-              “{{ banner.name }}”.
-            </div>
-
             <p
               class="ogd:mt-4 ogd:mb-0 ogd:rounded-[14px] ogd:border ogd:border-primary/20 ogd:bg-primary-soft ogd:px-3.5 ogd:py-3 ogd:text-[13px] ogd:leading-relaxed ogd:text-gray-600"
             >
