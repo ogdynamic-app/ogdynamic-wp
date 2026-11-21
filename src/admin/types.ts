@@ -59,6 +59,14 @@ export type EmailBannerMapEntry = {
   value?: string;
 };
 
+/** CartBounty assignment stored on the banner: one email + one position. */
+export type CartBountyAssignment = {
+  /** CartBounty automation step key (0 = First email). */
+  email: number;
+  /** Template position key (see CartBountyIntegration::PLACEMENTS). */
+  placement: string;
+};
+
 export type EmailBanner = {
   id: string;
   name: string;
@@ -70,6 +78,8 @@ export type EmailBanner = {
   link: string;
   display_width: number;
   map: EmailBannerMapEntry[];
+  /** CartBounty email assignment, or null when the banner is unused there. */
+  cartbounty?: CartBountyAssignment | null;
   created_at: string;
   updated_at: string;
 };
@@ -82,21 +92,34 @@ export type EmailBannerSource = {
   type: string;
 };
 
+/** CartBounty automation email listed for the assignment dialog. */
+export type CartBountyEmail = {
+  id: number;
+  name: string;
+  enabled: boolean;
+};
+
+/** CartBounty banner position listed for the assignment dialog. */
+export type CartBountyPlacement = {
+  value: string;
+  label: string;
+};
+
 export type IntegrationStatus = {
   slug: string;
   label: string;
   available: boolean;
   active: boolean;
   note: string;
-  /** Configured default banner id (banner-injecting integrations only). */
-  banner_id?: string;
+  /** CartBounty: automation emails and banner positions for its dialog. */
+  emails?: CartBountyEmail[];
+  placements?: CartBountyPlacement[];
 };
 
 export type EmailBannersPayload = {
   data: EmailBanner[];
   sources: EmailBannerSource[];
   integrations: IntegrationStatus[];
-  integration_banners?: Record<string, string>;
 };
 
 export interface User {

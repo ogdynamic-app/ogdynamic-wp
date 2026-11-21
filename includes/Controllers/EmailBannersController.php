@@ -48,29 +48,6 @@ class EmailBannersController {
 
 		register_rest_route(
 			'ogdynamic/v1',
-			'/email-banners/integrations/(?P<slug>[a-z0-9_-]+)',
-			array(
-				array(
-					'methods'             => WP_REST_Server::EDITABLE,
-					'callback'            => array( self::class, 'set_integration_banner' ),
-					'permission_callback' => array( self::class, 'can_manage' ),
-					'args'                => array(
-						'slug'      => array(
-							'required'          => true,
-							'sanitize_callback' => 'sanitize_key',
-						),
-						'banner_id' => array(
-							'required'          => false,
-							'default'           => '',
-							'sanitize_callback' => 'sanitize_key',
-						),
-					),
-				),
-			)
-		);
-
-		register_rest_route(
-			'ogdynamic/v1',
 			'/email-banners/(?P<id>[a-f0-9]{12})',
 			array(
 				array(
@@ -111,37 +88,9 @@ class EmailBannersController {
 	public static function get(): \WP_REST_Response {
 		return rest_ensure_response(
 			array(
-				'data'                => array_values( EmailBanners::get_all() ),
-				'sources'             => IntegrationManager::sources(),
-				'integrations'        => IntegrationManager::status(),
-				'integration_banners' => IntegrationManager::integration_banners(),
-			)
-		);
-	}
-
-	/**
-	 * Sets (or clears) an integration's default banner.
-	 *
-	 * @param WP_REST_Request $request The REST request object.
-	 * @return \WP_REST_Response|\WP_Error REST response or error.
-	 */
-	public static function set_integration_banner( WP_REST_Request $request ) {
-		$slug      = (string) $request->get_param( 'slug' );
-		$banner_id = sanitize_key( (string) $request->get_param( 'banner_id' ) );
-
-		$saved = IntegrationManager::set_integration_banner( $slug, $banner_id );
-
-		if ( ! $saved ) {
-			return new \WP_Error(
-				'ogd_invalid_integration_banner',
-				__( 'Unknown integration or banner.', 'ogdynamic' ),
-				array( 'status' => 400 )
-			);
-		}
-
-		return rest_ensure_response(
-			array(
-				'data' => IntegrationManager::integration_banners(),
+				'data'         => array_values( EmailBanners::get_all() ),
+				'sources'      => IntegrationManager::sources(),
+				'integrations' => IntegrationManager::status(),
 			)
 		);
 	}
@@ -175,7 +124,9 @@ class EmailBannersController {
 	public static function update( WP_REST_Request $request ) {
 		$id = (string) $request->get_param( 'id' );
 
-		if ( null === EmailBanners::get( $id ) ) {
+		$existing = EmailBanners::get( $id );
+
+		if ( null === $existing ) {
 			return new \WP_Error(
 				'ogd_banner_not_found',
 				__( 'Email banner not found.', 'ogdynamic' ),
@@ -183,7 +134,7 @@ class EmailBannersController {
 			);
 		}
 
-		$banner = self::banner_from_request( $request );
+		$banner = self::banner_from_request( $request, $existing );
 
 		if ( is_wp_error( $banner ) ) {
 			return $banner;
@@ -226,10 +177,12 @@ class EmailBannersController {
 	/**
 	 * Assembles a sanitized banner payload from the request.
 	 *
-	 * @param WP_REST_Request $request The REST request object.
+	 * @param WP_REST_Request $request  The REST request object.
+	 * @param array|null      $existing Existing banner on update (assignments
+	 *                                  are preserved when the request omits them).
 	 * @return array|\WP_Error Banner payload or error.
 	 */
-	protected static function banner_from_request( WP_REST_Request $request ) {
+	protected static function banner_from_request( WP_REST_Request $request, ?array $existing = null ) {
 		$name = sanitize_text_field( (string) $request->get_param( 'name' ) );
 
 		if ( '' === $name ) {
@@ -255,6 +208,10 @@ class EmailBannersController {
 		$display_width = absint( $request->get_param( 'display_width' ) );
 		$display_width = 0 === $display_width ? EmailBanners::DEFAULT_DISPLAY_WIDTH : $display_width;
 
+		$cartbounty = $request->has_param( 'cartbounty' )
+			? self::sanitize_assignment( $request->get_param( 'cartbounty' ) )
+			: ( $existing['cartbounty'] ?? null );
+
 		// The banner keeps a snapshot of the canvas dims so merge tags can
 		// size the email image without a SaaS call at send time.
 		return array(
@@ -267,6 +224,31 @@ class EmailBannersController {
 			'link'          => $link,
 			'display_width' => max( 100, min( 1200, $display_width ) ),
 			'map'           => $map,
+			'cartbounty'    => $cartbounty,
+		);
+	}
+
+	/**
+	 * Sanitizes the banner's CartBounty assignment.
+	 *
+	 * @param mixed $value Raw assignment ({email, placement}) or null.
+	 * @return array|null Assignment, or null when cleared/invalid.
+	 */
+	protected static function sanitize_assignment( $value ): ?array {
+		if ( ! is_array( $value ) ) {
+			return null;
+		}
+
+		$email     = array_key_exists( 'email', $value ) ? absint( $value['email'] ) : -1;
+		$placement = isset( $value['placement'] ) ? sanitize_key( (string) $value['placement'] ) : '';
+
+		if ( $email < 0 || $email > 10 || '' === $placement ) {
+			return null;
+		}
+
+		return array(
+			'email'     => $email,
+			'placement' => $placement,
 		);
 	}
 
@@ -317,7 +299,34 @@ class EmailBannersController {
 				'validate_callback' => array( self::class, 'validate_map' ),
 				'sanitize_callback' => array( self::class, 'sanitize_map' ),
 			),
+			'cartbounty'    => array(
+				'required'          => false,
+				'type'              => 'object',
+				'validate_callback' => array( self::class, 'validate_assignment' ),
+			),
 		);
+	}
+
+	/**
+	 * Validates a CartBounty assignment shape.
+	 *
+	 * @param mixed $value The assignment to validate.
+	 * @return bool True if valid, false otherwise.
+	 */
+	public static function validate_assignment( $value ): bool {
+		if ( null === $value ) {
+			return true;
+		}
+
+		if ( ! is_array( $value ) || ! isset( $value['email'], $value['placement'] ) ) {
+			return false;
+		}
+
+		return is_numeric( $value['email'] )
+			&& (int) $value['email'] >= 0
+			&& (int) $value['email'] <= 10
+			&& is_string( $value['placement'] )
+			&& 1 === preg_match( '/^[a-z_]{2,30}$/', $value['placement'] );
 	}
 
 	/**

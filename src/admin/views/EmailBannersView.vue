@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, shallowRef } from "vue";
-import { RouterLink, useRouter } from "vue-router";
+import { RouterLink } from "vue-router";
 import type {
   EmailBanner,
   EmailBannersPayload,
@@ -8,10 +8,8 @@ import type {
 } from "../types";
 import { useOgdApi } from "../composables/useOgdApi";
 import CopyButton from "../components/CopyButton.vue";
+import UseBannerDialog from "../components/UseBannerDialog.vue";
 
-const CARTBOUNTY_TOKEN = "[ogdynamic_banner]";
-
-const router = useRouter();
 const api = useOgdApi();
 const deleteApi = useOgdApi();
 
@@ -29,44 +27,30 @@ const cartBounty = computed<IntegrationStatus | undefined>(() =>
   integrations.value.find((item) => item.slug === "cartbounty"),
 );
 
-const integrationApi = useOgdApi();
+/** WordPress.org install URLs for the supported integrations. */
+const installUrls: Record<string, string> = {
+  funnelkit: "https://wordpress.org/plugins/wp-marketing-automations/",
+  cartbounty: "https://wordpress.org/plugins/woo-save-abandoned-carts/",
+};
 
-const cartBountyBannerId = ref("");
-const integrationSaved = ref("");
+// Per-banner usage dialog ("Use in FunnelKit" / "Use in CartBounty").
+const dialogOpen = ref(false);
+const dialogMode = ref<"funnelkit" | "cartbounty">("funnelkit");
+const dialogBanner = ref<EmailBanner | undefined>();
 
-const cartBountyBannerOptions = computed(() => [
-  { value: "", label: "No banner" },
-  ...banners.value.map((banner) => ({
-    value: banner.id,
-    label: banner.name,
-  })),
-]);
-
-async function saveCartBountyBanner() {
-  integrationSaved.value = "";
-
-  try {
-    await integrationApi.request<{ data: Record<string, string> }>(
-      `email-banners/integrations/cartbounty`,
-      {
-        method: "PUT",
-        body: { banner_id: cartBountyBannerId.value },
-      },
-    );
-    integrationSaved.value = cartBountyBannerId.value
-      ? "Banner will be inserted into CartBounty recovery emails."
-      : "Banner removed from CartBounty emails.";
-  } catch {
-    // Error handled by API error state.
-  }
+function openDialog(banner: EmailBanner, mode: "funnelkit" | "cartbounty") {
+  dialogMode.value = mode;
+  dialogBanner.value = banner;
+  dialogOpen.value = true;
 }
 
-const funnelKitSteps = [
-  "Open FunnelKit Automations and edit your abandoned cart automation email (or create one from the Cart Abandoned trigger).",
-  "Click inside any text block, then open the Merge tags picker above the editor.",
-  "Pick the ogdynamic group and select your banner by name — the tag is inserted for you.",
-  "Send a test email to check the placement, then activate the automation.",
-];
+function dialogStatus(mode: "funnelkit" | "cartbounty") {
+  return mode === "funnelkit" ? funnelKit.value : cartBounty.value;
+}
+
+async function onDialogSaved() {
+  await load();
+}
 
 function mergeTagCode(banner: EmailBanner): string {
   return `{{ogd_banner_${banner.id}}}`;
@@ -80,6 +64,29 @@ function linkLabel(banner: EmailBanner): string {
   return banner.link === "none" ? "No link" : "Custom link";
 }
 
+/** Short "CartBounty · First email" summary of a banner's assignment. */
+function cartBountyLabel(banner: EmailBanner): string {
+  const assignment = banner.cartbounty;
+
+  if (!assignment) {
+    return "";
+  }
+
+  const email = cartBounty.value?.emails?.find(
+    (item) => item.id === assignment.email,
+  );
+  const placement = cartBounty.value?.placements?.find(
+    (item) => item.value === assignment.placement,
+  );
+
+  const parts = ["CartBounty", email?.name];
+  if (placement) {
+    parts.push(placement.label.toLowerCase());
+  }
+
+  return parts.filter(Boolean).join(" · ");
+}
+
 async function load() {
   isLoading.value = true;
 
@@ -87,8 +94,6 @@ async function load() {
     const payload = await api.request<EmailBannersPayload>("email-banners");
     banners.value = payload.data ?? [];
     integrations.value = payload.integrations ?? [];
-    cartBountyBannerId.value =
-      payload.integration_banners?.cartbounty ?? "";
   } catch {
     // Error handled by API error state.
   } finally {
@@ -173,229 +178,47 @@ onMounted(() => {
     </div>
 
     <template v-else>
-      <!-- FunnelKit integration status card. -->
-      <article
-        v-if="funnelKit"
-        class="ogd:mt-7 ogd:rounded-[20px] ogd:border ogd:border-gray-100 ogd:bg-white ogd:p-6"
+      <!-- Integration availability chips (usage help lives on each banner). -->
+      <div
+        v-if="integrations.length"
+        class="ogd:mt-6 ogd:flex ogd:flex-wrap ogd:items-center ogd:gap-2"
       >
-        <div class="ogd:flex ogd:flex-wrap ogd:items-start ogd:justify-between ogd:gap-4">
-          <div class="ogd:flex ogd:items-start ogd:gap-4">
-            <div
-              class="ogd:flex ogd:size-12 ogd:shrink-0 ogd:items-center ogd:justify-center ogd:rounded-[14px]"
-              :class="
-                funnelKit.available
-                  ? 'ogd:bg-primary-soft ogd:text-primary'
-                  : 'ogd:bg-gray-100 ogd:text-gray-400'
-              "
-            >
-              <svg
-                class="ogd:size-6"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                aria-hidden="true"
-              >
-                <path
-                  d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"
-                />
-                <line x1="4" y1="22" x2="4" y2="15" />
-              </svg>
-            </div>
-            <div>
-              <div class="ogd:flex ogd:items-center ogd:gap-2.5">
-                <h2
-                  class="ogd:m-0 ogd:font-display ogd:text-base ogd:font-bold ogd:text-gray-900"
-                >
-                  {{ funnelKit.label }}
-                </h2>
-                <span
-                  class="ogd:rounded-full ogd:px-2 ogd:py-px ogd:text-[10px] ogd:font-semibold ogd:tracking-wide ogd:uppercase"
-                  :class="
-                    funnelKit.available
-                      ? 'ogd:bg-success-soft ogd:text-success-text'
-                      : 'ogd:bg-gray-100 ogd:text-gray-500'
-                  "
-                >
-                  {{
-                    funnelKit.available ? "Connected" : "Not installed"
-                  }}
-                </span>
-              </div>
-              <p
-                class="ogd:mt-1.5 ogd:mb-0 ogd:max-w-140 ogd:text-sm ogd:leading-relaxed ogd:text-gray-500"
-              >
-                {{ funnelKit.note }}
-              </p>
-            </div>
-          </div>
-          <a
-            v-if="!funnelKit.available"
-            class="ogd:inline-flex ogd:items-center ogd:rounded-full ogd:border ogd:border-gray-200 ogd:bg-white ogd:px-4 ogd:py-2 ogd:text-[13px] ogd:font-semibold ogd:text-gray-700 ogd:no-underline ogd:transition ogd:hover:border-primary ogd:hover:text-primary"
-            href="https://wordpress.org/plugins/wp-marketing-automations/"
-            target="_blank"
-            rel="noreferrer"
-          >
-            Get FunnelKit Automations
-          </a>
-        </div>
-
-        <div
-          v-if="funnelKit.available && banners.length"
-          class="ogd:mt-5 ogd:rounded-[14px] ogd:border ogd:border-gray-100 ogd:bg-gray-50 ogd:p-4"
-        >
-          <p
-            class="ogd:m-0 ogd:text-[12.5px] ogd:font-semibold ogd:tracking-wide ogd:text-gray-400 ogd:uppercase"
-          >
-            Insert a banner in FunnelKit
-          </p>
-          <ol
-            class="ogd:mt-2 ogd:mb-0 ogd:list-decimal ogd:pl-5 ogd:text-sm ogd:leading-relaxed ogd:text-gray-600"
-          >
-            <li v-for="step in funnelKitSteps" :key="step">{{ step }}</li>
-          </ol>
-          <p
-            class="ogd:mt-3 ogd:mb-0 ogd:border-t ogd:border-gray-100 ogd:pt-3 ogd:text-[12.5px] ogd:leading-relaxed ogd:text-gray-500"
-          >
-            Every real send renders the banner personalized with the
-            recipient's own name, products and cart total — and clicking it
-            restores their cart. Test emails and builder previews show the
-            canvas defaults.
-          </p>
-        </div>
-      </article>
-
-      <!-- CartBounty integration card: one default banner, no merge tags. -->
-      <article
-        v-if="cartBounty"
-        class="ogd:mt-4 ogd:rounded-[20px] ogd:border ogd:border-gray-100 ogd:bg-white ogd:p-6"
-      >
-        <div class="ogd:flex ogd:items-start ogd:gap-4">
-          <div
-            class="ogd:flex ogd:size-12 ogd:shrink-0 ogd:items-center ogd:justify-center ogd:rounded-[14px]"
+        <template v-for="integration in integrations" :key="integration.slug">
+          <span
+            class="ogd:inline-flex ogd:items-center ogd:gap-1.5 ogd:rounded-full ogd:px-3 ogd:py-1 ogd:text-[12px] ogd:font-semibold"
             :class="
-              cartBounty.available
-                ? 'ogd:bg-primary-soft ogd:text-primary'
-                : 'ogd:bg-gray-100 ogd:text-gray-400'
+              integration.available
+                ? 'ogd:bg-success-soft ogd:text-success-text'
+                : 'ogd:bg-gray-100 ogd:text-gray-500'
             "
           >
             <svg
-              class="ogd:size-6"
+              class="ogd:size-3"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
-              stroke-width="2"
+              stroke-width="2.5"
               stroke-linecap="round"
               stroke-linejoin="round"
               aria-hidden="true"
             >
-              <circle cx="8" cy="21" r="1" />
-              <circle cx="19" cy="21" r="1" />
-              <path
-                d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"
-              />
+              <path v-if="integration.available" d="M20 6 9 17l-5-5" />
+              <path v-else d="M18 6 6 18" />
+              <path v-if="!integration.available" d="m6 6 12 12" />
             </svg>
-          </div>
-          <div class="ogd:flex-1">
-            <div class="ogd:flex ogd:items-center ogd:gap-2.5">
-              <h2
-                class="ogd:m-0 ogd:font-display ogd:text-base ogd:font-bold ogd:text-gray-900"
-              >
-                {{ cartBounty.label }}
-              </h2>
-              <span
-                class="ogd:rounded-full ogd:px-2 ogd:py-px ogd:text-[10px] ogd:font-semibold ogd:tracking-wide ogd:uppercase"
-                :class="
-                  cartBounty.available
-                    ? 'ogd:bg-success-soft ogd:text-success-text'
-                    : 'ogd:bg-gray-100 ogd:text-gray-500'
-                "
-              >
-                {{ cartBounty.available ? "Connected" : "Not installed" }}
-              </span>
-            </div>
-            <p
-              class="ogd:mt-1.5 ogd:mb-0 ogd:max-w-140 ogd:text-sm ogd:leading-relaxed ogd:text-gray-500"
-            >
-              {{ cartBounty.note }}
-            </p>
-
-            <div
-              v-if="cartBounty.available"
-              class="ogd:mt-4 ogd:flex ogd:flex-wrap ogd:items-center ogd:gap-2.5"
-            >
-              <select
-                v-model="cartBountyBannerId"
-                class="ogd:w-56 ogd:appearance-none ogd:rounded-full! ogd:border ogd:border-gray-200! ogd:bg-gray-50 ogd:px-6! ogd:py-1.5 ogd:text-[13.5px]! ogd:text-gray-900! ogd:outline-none! ogd:transition ogd:focus:border-primary! ogd:focus:bg-white! ogd:focus:shadow-[0_0_0_3px_rgba(99,91,255,0.12)]"
-                :disabled="banners.length === 0 || integrationApi.loading.value"
-              >
-                <option
-                  v-for="option in cartBountyBannerOptions"
-                  :key="option.value"
-                  :value="option.value"
-                >
-                  {{ option.label }}
-                </option>
-              </select>
-              <button
-                class="ogd:inline-flex ogd:cursor-pointer ogd:items-center ogd:justify-center ogd:gap-2 ogd:rounded-full ogd:border ogd:border-transparent ogd:bg-primary ogd:px-4 ogd:py-2 ogd:text-[12.5px] ogd:font-semibold ogd:text-white! ogd:transition ogd:hover:border-primary-hover ogd:hover:bg-primary-hover ogd:disabled:cursor-not-allowed ogd:disabled:opacity-50"
-                type="button"
-                :disabled="banners.length === 0 || integrationApi.loading.value"
-                @click="saveCartBountyBanner"
-              >
-                {{ integrationApi.loading.value ? "Saving…" : "Save" }}
-              </button>
-            </div>
-            <p
-              v-if="cartBounty.available && banners.length === 0"
-              class="ogd:mt-3 ogd:mb-0 ogd:text-[12.5px] ogd:text-gray-400"
-            >
-              Create a banner above to insert it into CartBounty emails.
-            </p>
-            <div
-              v-if="cartBounty.available && banners.length > 0"
-              class="ogd:mt-4 ogd:rounded-[14px] ogd:border ogd:border-gray-100 ogd:bg-gray-50 ogd:p-4"
-            >
-              <p
-                class="ogd:m-0 ogd:text-[12.5px] ogd:font-semibold ogd:tracking-wide ogd:text-gray-400 ogd:uppercase"
-              >
-                Place it exactly where you want
-              </p>
-              <p
-                class="ogd:mt-2 ogd:mb-3 ogd:text-[13px] ogd:leading-relaxed ogd:text-gray-500"
-              >
-                Paste this token anywhere in the CartBounty email text — the
-                banner renders there instead of the default spot, personalized
-                for every recipient.
-              </p>
-              <CopyButton :value="CARTBOUNTY_TOKEN" copied-label="Copied!" />
-            </div>
-            <div
-              v-if="integrationApi.error.value"
-              class="ogd:mt-3 ogd:rounded-[14px] ogd:border ogd:border-destructive/25 ogd:bg-destructive/5 ogd:px-3.5 ogd:py-3 ogd:text-destructive"
-            >
-              {{ integrationApi.error.value }}
-            </div>
-            <div
-              v-if="integrationSaved"
-              class="ogd:mt-3 ogd:rounded-[14px] ogd:border ogd:border-success/25 ogd:bg-success-soft ogd:px-3.5 ogd:py-3 ogd:text-success-text"
-            >
-              {{ integrationSaved }}
-            </div>
-          </div>
+            {{ integration.label }}
+          </span>
           <a
-            v-if="!cartBounty.available"
-            class="ogd:inline-flex ogd:items-center ogd:rounded-full ogd:border ogd:border-gray-200 ogd:bg-white ogd:px-4 ogd:py-2 ogd:text-[13px] ogd:font-semibold ogd:text-gray-700 ogd:no-underline ogd:transition ogd:hover:border-primary ogd:hover:text-primary"
-            href="https://wordpress.org/plugins/woo-save-abandoned-carts/"
+            v-if="!integration.available && installUrls[integration.slug]"
+            class="ogd:text-[12px] ogd:font-semibold ogd:text-primary ogd:no-underline hover:ogd:underline"
+            :href="installUrls[integration.slug]"
             target="_blank"
             rel="noreferrer"
           >
-            Get CartBounty
+            Get {{ integration.label }} →
           </a>
-        </div>
-      </article>
+        </template>
+      </div>
 
       <div
         v-if="api.error.value"
@@ -437,7 +260,7 @@ onMounted(() => {
           class="ogd:mb-5 ogd:mt-0 ogd:text-center! ogd:text-sm ogd:leading-relaxed ogd:text-gray-500"
         >
           Pick a canvas, map its fields to cart and customer data, and drop
-          the banner into your abandoned cart emails with one merge tag.
+          the banner into your abandoned cart emails.
         </p>
         <RouterLink
           class="ogd:inline-flex ogd:cursor-pointer ogd:items-center ogd:justify-center ogd:gap-2 ogd:rounded-full ogd:border ogd:border-transparent ogd:bg-primary ogd:px-4.5 ogd:py-2.5 ogd:text-[13px] ogd:font-semibold ogd:text-white! ogd:no-underline ogd:transition ogd:hover:border-primary-hover ogd:hover:bg-primary-hover"
@@ -458,11 +281,19 @@ onMounted(() => {
             class="ogd:flex ogd:flex-wrap ogd:items-start ogd:justify-between ogd:gap-4"
           >
             <div class="ogd:min-w-0">
-              <h2
-                class="ogd:m-0 ogd:truncate ogd:font-display ogd:text-lg ogd:font-bold ogd:tracking-[-0.02em] ogd:text-gray-900"
-              >
-                {{ banner.name }}
-              </h2>
+              <div class="ogd:flex ogd:flex-wrap ogd:items-center ogd:gap-2">
+                <h2
+                  class="ogd:m-0 ogd:truncate ogd:font-display ogd:text-lg ogd:font-bold ogd:tracking-[-0.02em] ogd:text-gray-900"
+                >
+                  {{ banner.name }}
+                </h2>
+                <span
+                  v-if="cartBountyLabel(banner)"
+                  class="ogd:inline-flex ogd:items-center ogd:rounded-full ogd:bg-primary-soft ogd:px-2 ogd:py-px ogd:text-[10.5px] ogd:font-semibold ogd:text-primary"
+                >
+                  {{ cartBountyLabel(banner) }}
+                </span>
+              </div>
               <p class="ogd:mt-1 ogd:mb-0 ogd:text-sm ogd:text-gray-500">
                 {{ banner.canvas_name || "Canvas" }}
                 <span v-if="banner.width && banner.height">
@@ -473,6 +304,22 @@ onMounted(() => {
             </div>
             <div class="ogd:flex ogd:flex-wrap ogd:gap-2.5">
               <CopyButton :value="mergeTagCode(banner)" />
+              <button
+                class="ogd:inline-flex ogd:cursor-pointer ogd:items-center ogd:rounded-full ogd:border ogd:border-gray-200 ogd:bg-white ogd:px-3.5 ogd:py-2 ogd:text-[12.5px] ogd:font-semibold ogd:text-gray-700 ogd:transition ogd:hover:border-primary ogd:hover:text-primary"
+                type="button"
+                @click="openDialog(banner, 'funnelkit')"
+              >
+                Use in FunnelKit
+              </button>
+              <button
+                class="ogd:inline-flex ogd:cursor-pointer ogd:items-center ogd:rounded-full ogd:border ogd:border-gray-200 ogd:bg-white ogd:px-3.5 ogd:py-2 ogd:text-[12.5px] ogd:font-semibold ogd:text-gray-700 ogd:transition ogd:hover:border-primary ogd:hover:text-primary"
+                type="button"
+                :disabled="!cartBounty"
+                :title="cartBounty ? '' : 'CartBounty is not installed'"
+                @click="openDialog(banner, 'cartbounty')"
+              >
+                Use in CartBounty
+              </button>
               <RouterLink
                 class="ogd:inline-flex ogd:items-center ogd:rounded-full ogd:border ogd:border-gray-200 ogd:bg-white ogd:px-3.5 ogd:py-2 ogd:text-[12.5px] ogd:font-semibold ogd:text-gray-700 ogd:no-underline ogd:transition ogd:hover:border-primary ogd:hover:text-primary"
                 :to="`/email-banners/${banner.id}`"
@@ -503,5 +350,15 @@ onMounted(() => {
         </article>
       </div>
     </template>
+
+    <!-- Per-banner usage dialog. -->
+    <UseBannerDialog
+      v-if="dialogBanner"
+      v-model:open="dialogOpen"
+      :banner="dialogBanner"
+      :mode="dialogMode"
+      :status="dialogStatus(dialogMode)"
+      @saved="onDialogSaved"
+    />
   </section>
 </template>

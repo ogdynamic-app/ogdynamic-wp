@@ -170,6 +170,10 @@ class EmailBanners {
 	/**
 	 * Creates a banner (id assigned) or updates an existing one.
 	 *
+	 * A banner's CartBounty assignment (`cartbounty` => {email, placement})
+	 * claims one automation email — saving an assignment clears it from
+	 * any other banner, so every email renders at most one banner.
+	 *
 	 * @param array $banner Sanitized banner payload.
 	 * @return array Saved banner.
 	 */
@@ -183,11 +187,42 @@ class EmailBanners {
 
 		$banner['updated_at'] = current_time( 'mysql' );
 
+		self::claim_cartbounty_email( $banner );
+
 		Settings::update( self::OPTION_PREFIX . $banner['id'], $banner );
 
 		self::$cache = null;
 
 		return $banner;
+	}
+
+	/**
+	 * Clears the same CartBounty email assignment from other banners.
+	 *
+	 * @param array $banner Banner payload being saved.
+	 * @return void
+	 */
+	protected static function claim_cartbounty_email( array $banner ): void {
+		$assignment = $banner['cartbounty'] ?? null;
+
+		if ( ! is_array( $assignment ) || ! isset( $assignment['email'] ) ) {
+			return;
+		}
+
+		$email = (int) $assignment['email'];
+
+		foreach ( self::get_all() as $other_id => $other ) {
+			if ( $other_id === (string) $banner['id'] ) {
+				continue;
+			}
+
+			$other_assignment = $other['cartbounty'] ?? null;
+
+			if ( is_array( $other_assignment ) && (int) ( $other_assignment['email'] ?? -1 ) === $email ) {
+				unset( $other['cartbounty'] );
+				Settings::update( self::OPTION_PREFIX . $other_id, $other );
+			}
+		}
 	}
 
 	/**

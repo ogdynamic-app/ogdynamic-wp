@@ -17,13 +17,12 @@ use OGDynamic\Integrations\SendContext;
  *
  * Capture rides the `cartbounty_automation_unsubscribe_url` filter: it
  * fires exactly once per real recovery email render (inside
- * get_selected_template(), right before the email template includes run),
- * and the URL it receives ends with "-{cart_id}", which identifies the
- * row in CartBounty's own table. The banner then renders on the
- * `cartbounty_automation_after_intro` action in the same request.
- *
- * Test/preview emails render without a cart, so no capture happens and
- * the banner falls back to the canvas defaults.
+ * get_selected_template(), right before the email template includes run)
+ * and only when a cart exists — test/preview emails never fire it. The
+ * URL it receives ends with "-{cart_id}", which identifies the row in
+ * CartBounty's own table, and the filter's second argument is the
+ * automation step (email) number, which selects the banner assignment to
+ * render.
  */
 class Sources {
 
@@ -35,25 +34,22 @@ class Sources {
 	protected static ?object $cart = null;
 
 	/**
-	 * Snapshot of the captured cart for the wp_mail stage.
+	 * Captured automation step (email) number, null when unknown.
 	 *
-	 * The render capture is cleared as soon as the banner action has
-	 * fired, but the `[ogdynamic_banner]` token in the email body is
-	 * expanded later, on the wp_mail filter — this snapshot carries the
-	 * cart there and is consumed by exactly one mail send.
-	 *
-	 * @var object|null
+	 * @var int|null
 	 */
-	protected static ?object $mail_cart = null;
+	protected static ?int $step = null;
 
 	/**
 	 * Capture callback for `cartbounty_automation_unsubscribe_url`.
 	 *
-	 * @param string $url Unsubscribe URL ending in "-{cart_id}".
+	 * @param string $url     Unsubscribe URL ending in "-{cart_id}".
+	 * @param int    $step_nr Automation step (email) number.
 	 * @return string The URL, unchanged.
 	 */
-	public static function capture( string $url ): string {
+	public static function capture( string $url, int $step_nr = 0 ): string {
 		self::$cart = null;
+		self::$step = null;
 
 		// URL shape: {site}?cartbounty={hmac hash}-{cart_id}&cartbounty-unsubscribe=1
 		// The hmac is hex (no dashes), so the first dash-digits after the
@@ -81,56 +77,35 @@ class Sources {
 		$cart = $wpdb->get_row( $sql );
 
 		if ( null !== $cart && ! empty( $cart->email ) ) {
-			self::$cart      = $cart;
-			self::$mail_cart = $cart;
+			self::$cart = $cart;
+			self::$step = $step_nr;
 		}
 
 		return $url;
 	}
 
 	/**
-	 * Consumes the mail-stage cart snapshot.
+	 * Gets the captured automation step (email) number.
 	 *
-	 * Returned only when the mail recipient matches the captured cart's
-	 * email — a later test/preview send to another address must never
-	 * receive a previous recipient's personalization. The snapshot is
-	 * consumed (one mail per capture) either way.
-	 *
-	 * @param string $to Mail recipient.
-	 * @return object|null Cart row when the recipient matches, else null.
+	 * @return int|null Step number, or null outside a real send.
 	 */
-	public static function mail_cart( string $to ): ?object {
-		$cart            = self::$mail_cart;
-		self::$mail_cart = null;
-
-		if ( null === $cart ) {
-			return null;
-		}
-
-		return 0 === strcasecmp( (string) $to, (string) $cart->email ) ? $cart : null;
+	public static function current_step(): ?int {
+		return self::$step;
 	}
 
 	/**
-	 * Restores a mail-stage snapshot as the render cart.
+	 * Clears the captured cart after the email render.
 	 *
-	 * Token expansion on the wp_mail filter happens after render_banner()
-	 * cleared the render capture; this puts the recipient-matched cart
-	 * back so context resolution personalizes the token correctly.
-	 *
-	 * @param object $cart Cart row.
-	 * @return void
-	 */
-	public static function set_render_cart( object $cart ): void {
-		self::$cart = $cart;
-	}
-
-	/**
-	 * Clears the captured cart after the banner render.
+	 * Also runs when no banner rendered (e.g. the step has no assignment)
+	 * so a following test/preview render in the same process — which fires
+	 * the template actions but not the capture filter — can never leak
+	 * the previous recipient's data.
 	 *
 	 * @return void
 	 */
 	public static function clear(): void {
 		self::$cart = null;
+		self::$step = null;
 	}
 
 	/**

@@ -13,35 +13,55 @@ use OGDynamic\Integrations\CartBounty\Sources;
 /**
  * Class CartBountyIntegration
  *
- * Injects a personalized banner into CartBounty's WordPress recovery
- * emails. Unlike FunnelKit (merge tags picked per email), CartBounty's
- * free email body is a fixed template — so this integration renders the
- * site's configured default banner after the email intro, personalized
- * per recipient from the cart being emailed.
+ * Renders personalized banners inside CartBounty's WordPress recovery
+ * emails. CartBounty's free email body is a fixed template, so banners
+ * are assigned per email directly on the banner record: each banner may
+ * claim one CartBounty automation email ("First email", …) and one
+ * position in it; at send time the integration renders whichever banner
+ * is assigned to the email being sent, personalized from the cart being
+ * emailed.
  */
 class CartBountyIntegration implements Integration {
 
 	/**
+	 * Banner positions in the email template (hook suffix → label).
+	 *
+	 * Each value is the suffix of the free plugin's zero-arg
+	 * `cartbounty_automation_{position}` template action.
+	 */
+	public const PLACEMENTS = array(
+		'before_title' => 'Above the heading',
+		'after_title'  => 'Below the heading',
+		'after_intro'  => 'After the content text',
+		'after_button' => 'Below the button',
+		'footer_start' => 'In the footer',
+	);
+
+	/**
+	 * Default placement when a saved assignment carries an unknown one.
+	 */
+	public const DEFAULT_PLACEMENT = 'after_intro';
+
+	/**
 	 * Hooks into CartBounty's email render.
 	 *
-	 * Free recovery emails fire `cartbounty_automation_*` actions with no
-	 * args; the cart is captured separately via the unsubscribe URL filter
-	 * (see Sources::capture()). Pro's builder fires
+	 * The cart and the automation step (email) number are captured on the
+	 * `cartbounty_automation_unsubscribe_url` filter, which fires exactly
+	 * once per real recovery email render; the render listens on every
+	 * free-template position action and echoes the banner on the one that
+	 * matches the assigned placement. Pro's builder fires
 	 * `cartbounty_pro_automation_{template}_{position}_{step}` hooks —
 	 * those are registered too so Pro users get the banner without extra
 	 * setup, best-effort until they can be verified against a Pro install.
 	 *
-	 * Users can also place the `[ogdynamic_banner]` token anywhere in the
-	 * email text — it expands on the wp_mail filter (CartBounty sends via
-	 * wp_mail) and the automatic after-intro injection is then removed, so
-	 * exactly one banner renders at the user-chosen spot.
-	 *
 	 * @return void
 	 */
 	public static function init(): void {
-		add_filter( 'cartbounty_automation_unsubscribe_url', array( Sources::class, 'capture' ) );
-		add_action( 'cartbounty_automation_after_intro', array( self::class, 'render_banner' ) );
-		add_filter( 'wp_mail', array( self::class, 'expand_mail_tokens' ) );
+		add_filter( 'cartbounty_automation_unsubscribe_url', array( Sources::class, 'capture' ), 10, 2 );
+
+		foreach ( array_keys( self::PLACEMENTS ) as $placement ) {
+			add_action( "cartbounty_automation_{$placement}", array( self::class, 'render_banner' ) );
+		}
 
 		foreach ( array( 'light', 'rows', 'columns' ) as $template ) {
 			foreach ( array( 'after_intro', 'after_title' ) as $position ) {
@@ -82,29 +102,94 @@ class CartBountyIntegration implements Integration {
 	/**
 	 * Status payload for the admin app.
 	 *
-	 * @return array{slug: string, label: string, available: bool, active: bool, note: string, banner_id: string}
+	 * `emails` and `placements` feed the per-banner "Use in CartBounty"
+	 * dialog: the automation emails read from CartBounty's own steps
+	 * option (so the list follows whatever steps the site has), the
+	 * positions from the template hooks.
+	 *
+	 * @return array{slug: string, label: string, available: bool, active: bool, note: string, emails: array[], placements: array[]}
 	 */
 	public static function status(): array {
 		$available = self::is_available();
-		$banner_id = self::default_banner_id();
+		$active    = false;
 
-		$note = $available
-			/* translators: %s: [ogdynamic_banner] token. */
-			? sprintf( __( 'Your default banner is inserted into CartBounty recovery emails after the intro text — or paste %s anywhere in the email text to place it yourself.', 'ogdynamic' ), '[ogdynamic_banner]' )
-			: __( 'Install and activate CartBounty to inject banners into its abandoned cart recovery emails.', 'ogdynamic' );
-
-		if ( $available && '' === $banner_id ) {
-			$note = __( 'Pick a default banner below and it will be inserted into CartBounty recovery emails after the intro text.', 'ogdynamic' );
+		foreach ( EmailBanners::get_all() as $banner ) {
+			if ( ! empty( $banner['cartbounty'] ) ) {
+				$active = true;
+				break;
+			}
 		}
 
+		$note = $available
+			? __( 'Assign a banner to a recovery email from any banner below — it renders personalized for every recipient of that email.', 'ogdynamic' )
+			: __( 'Install and activate CartBounty to insert banners into its abandoned cart recovery emails.', 'ogdynamic' );
+
 		return array(
-			'slug'      => self::slug(),
-			'label'     => self::label(),
-			'available' => $available,
-			'active'    => $available && '' !== $banner_id,
-			'note'      => $note,
-			'banner_id' => $banner_id,
+			'slug'       => self::slug(),
+			'label'      => self::label(),
+			'available'  => $available,
+			'active'     => $active,
+			'note'       => $note,
+			'emails'     => self::emails(),
+			'placements' => self::placement_options(),
 		);
+	}
+
+	/**
+	 * Lists CartBounty's automation emails for the assignment dialog.
+	 *
+	 * Built from CartBounty's `cartbounty_automation_steps` option — the
+	 * same keys the send loop passes to the capture filter — so the list
+	 * always matches the emails the site can actually send. The option
+	 * does not store step names, so they come from a local map mirroring
+	 * CartBounty's defaults.
+	 *
+	 * @return array[] Entries: {id, name, enabled}.
+	 */
+	public static function emails(): array {
+		$steps = get_option( 'cartbounty_automation_steps' );
+
+		if ( ! is_array( $steps ) || array() === $steps ) {
+			$max  = defined( 'CARTBOUNTY_MAX_STEPS' ) ? (int) constant( 'CARTBOUNTY_MAX_STEPS' ) : 3;
+			$keys = range( 0, max( 1, $max ) - 1 );
+		} else {
+			$keys = array_keys( $steps );
+		}
+
+		$names = array( 'First email', 'Second email', 'Third email', 'Fourth email' );
+
+		$emails = array();
+		foreach ( $keys as $key ) {
+			if ( ! is_int( $key ) ) {
+				continue;
+			}
+
+			$emails[] = array(
+				'id'      => $key,
+				'name'    => $names[ $key ] ?? sprintf( /* translators: %d: email number. */ __( 'Email %d', 'ogdynamic' ), $key + 1 ),
+				'enabled' => isset( $steps[ $key ]['enabled'] ),
+			);
+		}
+
+		return $emails;
+	}
+
+	/**
+	 * Lists the banner placements for the assignment dialog.
+	 *
+	 * @return array[] Entries: {value, label}.
+	 */
+	public static function placement_options(): array {
+		$options = array();
+
+		foreach ( self::PLACEMENTS as $value => $label ) {
+			$options[] = array(
+				'value' => $value,
+				'label' => $label,
+			);
+		}
+
+		return $options;
 	}
 
 	/**
@@ -136,153 +221,111 @@ class CartBountyIntegration implements Integration {
 	}
 
 	/**
-	 * Markup echoed by the last automatic after-intro render.
+	 * Renders the banner assigned to the email being sent.
 	 *
-	 * Remembered so expand_mail_tokens() can remove exactly that banner
-	 * when the email text carries a placement token.
-	 *
-	 * @var string
-	 */
-	protected static string $last_markup = '';
-
-	/**
-	 * Renders the configured banner into the email.
-	 *
-	 * Echoes nothing when no banner is configured or the banner was
-	 * deleted. The captured cart is cleared afterwards so a following
-	 * test/preview render (which fires no capture filter) can never leak
-	 * the previous recipient's data.
+	 * Called on every template position action; echoes the banner only on
+	 * the action matching the assigned placement. The captured cart is
+	 * cleared after the render — or on the footer action, the last one in
+	 * the free template, when no placement matched — so a following test
+	 * or preview render in the same process can never leak the previous
+	 * recipient's data.
 	 *
 	 * @return void
 	 */
 	public static function render_banner(): void {
-		self::$last_markup = '';
+		$hook       = (string) current_action();
+		$step       = self::hook_step( $hook ) ?? Sources::current_step();
+		$assignment = null === $step ? null : self::assignment_for( $step );
 
-		$banner_id = self::default_banner_id();
+		if ( null !== $assignment && self::placement_matches( $assignment['placement'], $hook ) ) {
+			$banner = $assignment['banner'];
 
-		if ( '' === $banner_id ) {
+			if ( ! empty( $banner['id'] ) ) {
+				$params = EmailBanners::resolve_params( $banner );
+				$args   = array(
+					'link' => (string) ( $banner['link'] ?? EmailBanners::LINK_RECOVERY ),
+					'alt'  => (string) $banner['name'],
+				);
+
+				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- image_markup() escapes its URL/alt/link attributes.
+				echo EmailBanners::image_markup( $banner, $params, $args );
+
+				Sources::clear();
+				return;
+			}
+		}
+
+		// The footer action is the last one in the free template — the
+		// catch-all clear for renders that matched no placement.
+		if ( 'cartbounty_automation_footer_start' === $hook ) {
 			Sources::clear();
-			return;
 		}
-
-		$banner = EmailBanners::get( $banner_id );
-
-		if ( null === $banner ) {
-			Sources::clear();
-			return;
-		}
-
-		$params = EmailBanners::resolve_params( $banner );
-		$args   = array(
-			'link' => (string) ( $banner['link'] ?? EmailBanners::LINK_RECOVERY ),
-			'alt'  => (string) $banner['name'],
-		);
-
-		$markup = EmailBanners::image_markup( $banner, $params, $args );
-
-		self::$last_markup = $markup;
-
-		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- image_markup() escapes its URL/alt/link attributes.
-		echo $markup;
-
-		Sources::clear();
 	}
 
 	/**
-	 * Expands `[ogdynamic_banner]` tokens in the outgoing mail body.
+	 * Finds the banner assigned to an automation email.
 	 *
-	 * Runs on the wp_mail filter (CartBounty sends through wp_mail) with
-	 * the captured cart as personalization context — returned only when
-	 * the mail recipient matches the cart's email, so a later test send
-	 * to another address can never receive a previous recipient's data.
-	 * When the body carries a token, the automatic after-intro banner is
-	 * removed from the message so exactly one banner renders.
-	 *
-	 * @param array $mail Mail args (to, subject, message, headers, attachments).
-	 * @return array Filtered mail args.
+	 * @param int $step Automation step (email) number.
+	 * @return array|null {banner: array, placement: string} or null.
 	 */
-	public static function expand_mail_tokens( array $mail ): array {
-		$message = (string) ( $mail['message'] ?? '' );
+	protected static function assignment_for( int $step ): ?array {
+		foreach ( EmailBanners::get_all() as $banner ) {
+			$assignment = $banner['cartbounty'] ?? null;
 
-		// No token: consume the snapshot (one capture feeds one mail) and
-		// keep the automatic injection untouched.
-		if ( false === strpos( $message, '[ogdynamic_banner' ) ) {
-			Sources::mail_cart( (string) ( $mail['to'] ?? '' ) );
-			return $mail;
+			if ( ! is_array( $assignment ) || (int) ( $assignment['email'] ?? -1 ) !== $step ) {
+				continue;
+			}
+
+			$placement = (string) ( $assignment['placement'] ?? '' );
+
+			return array(
+				'banner'    => $banner,
+				'placement' => isset( self::PLACEMENTS[ $placement ] ) ? $placement : self::DEFAULT_PLACEMENT,
+			);
 		}
 
-		$cart = Sources::mail_cart( (string) ( $mail['to'] ?? '' ) );
-
-		if ( null === $cart ) {
-			return $mail;
-		}
-
-		// The render capture was already cleared by render_banner(); put
-		// the mail-stage snapshot back so EmailBanners::resolve_params()
-		// resolves this recipient's cart while expanding the token.
-		Sources::set_render_cart( $cart );
-
-		// get_shortcode_regex() ships without delimiters (core wraps it
-		// the same way inside do_shortcode()).
-		$regex = '@' . get_shortcode_regex( array( 'ogdynamic_banner' ) ) . '@';
-
-		$expanded = preg_replace_callback(
-			$regex,
-			static function ( $matches ) {
-				$atts = shortcode_parse_atts( $matches[3] ?? '' );
-				$atts = is_array( $atts ) ? $atts : array();
-
-				// Token without an id renders the configured default banner.
-				if ( empty( $atts['id'] ) ) {
-					$atts['id'] = self::default_banner_id();
-				}
-
-				return EmailBanners::render_shortcode( $atts );
-			},
-			$message
-		);
-
-		Sources::clear();
-
-		if ( is_string( $expanded ) ) {
-			$mail['message'] = self::remove_auto_banner( $expanded );
-		}
-
-		return $mail;
+		return null;
 	}
 
 	/**
-	 * Removes the automatically injected banner from the message body.
+	 * Whether the hook currently firing is the assignment's render spot.
 	 *
-	 * @param string $message Expanded message.
-	 * @return string Message without the first auto-injected banner occurrence.
+	 * Free hooks map by placement suffix. Pro hooks only expose two
+	 * positions, so placements map to the nearest one — best-effort until
+	 * they can be verified against a Pro install.
+	 *
+	 * @param string $placement Assignment placement key.
+	 * @param string $hook      Hook currently firing.
+	 * @return bool True when the banner should render on this hook.
 	 */
-	protected static function remove_auto_banner( string $message ): string {
-		$markup = self::$last_markup;
-
-		self::$last_markup = '';
-
-		if ( '' === $markup ) {
-			return $message;
+	protected static function placement_matches( string $placement, string $hook ): bool {
+		if ( ! isset( self::PLACEMENTS[ $placement ] ) ) {
+			$placement = self::DEFAULT_PLACEMENT;
 		}
 
-		$position = strpos( $message, $markup );
+		if ( 0 === strpos( $hook, 'cartbounty_pro_automation_' ) ) {
+			$position = in_array( $placement, array( 'before_title', 'after_title' ), true ) ? 'after_title' : 'after_intro';
 
-		if ( false === $position ) {
-			return $message;
+			return 1 === preg_match( '/_' . $position . '_\d+$/', $hook );
 		}
 
-		return substr( $message, 0, $position ) . substr( $message, $position + strlen( $markup ) );
+		return 'cartbounty_automation_' . $placement === $hook;
 	}
 
 	/**
-	 * Gets the configured default banner id.
+	 * Extracts the Pro email number from a Pro hook name.
 	 *
-	 * @return string 12-hex banner id, or an empty string when unset.
+	 * Pro hook names end in their 1-based email number; assignments use
+	 * the free plugin's 0-based step keys, so the number is shifted.
+	 *
+	 * @param string $hook Hook name.
+	 * @return int|null Step number, or null for free hooks.
 	 */
-	public static function default_banner_id(): string {
-		$banner_id = (string) IntegrationManager::get_integration_banner( self::slug() );
+	protected static function hook_step( string $hook ): ?int {
+		if ( 1 !== preg_match( '/^cartbounty_pro_automation_[a-z]+_[a-z_]+_(\d+)$/', $hook, $matches ) ) {
+			return null;
+		}
 
-		return preg_match( '/^[a-f0-9]{12}$/', $banner_id ) ? $banner_id : '';
+		return max( 0, (int) $matches[1] - 1 );
 	}
 }
