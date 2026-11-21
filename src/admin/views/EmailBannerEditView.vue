@@ -13,7 +13,6 @@ import type {
 import { useOgdApi } from "../composables/useOgdApi";
 import { useOgdCloudApi } from "../composables/useOgdCloudApi";
 import { bannerPreviewUrl } from "../bannerPreview";
-import CopyButton from "../components/CopyButton.vue";
 import FormField from "../components/forms/FormField.vue";
 import TextInput from "../components/forms/TextInput.vue";
 import SelectInput from "../components/forms/SelectInput.vue";
@@ -142,10 +141,6 @@ const previewUrl = computed(() =>
   formPayload.canvas_id
     ? bannerPreviewUrl({ canvas_id: formPayload.canvas_id })
     : "",
-);
-
-const mergeTagCode = computed(() =>
-  bannerExists.value ? `{{ogd_banner_${bannerId.value}}}` : "",
 );
 
 // An image-type canvas field only renders when its value is a URL, so
@@ -488,7 +483,6 @@ onMounted(async () => {
       >
         {{ isNew ? "Create Email Banner" : "Edit Email Banner" }}
       </h1>
-      <CopyButton v-if="mergeTagCode" :value="mergeTagCode" />
     </div>
     <p
       class="ogd:mt-2 ogd:mb-6 ogd:max-w-140 ogd:text-[15px] ogd:leading-relaxed ogd:text-gray-500"

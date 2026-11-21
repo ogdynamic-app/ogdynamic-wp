@@ -7,7 +7,6 @@ import type {
   IntegrationStatus,
 } from "../types";
 import { useOgdApi } from "../composables/useOgdApi";
-import CopyButton from "../components/CopyButton.vue";
 import UseBannerDialog from "../components/UseBannerDialog.vue";
 
 const api = useOgdApi();
@@ -44,10 +43,6 @@ function dialogStatus(mode: "funnelkit" | "cartbounty") {
 
 async function onDialogSaved() {
   await load();
-}
-
-function mergeTagCode(banner: EmailBanner): string {
-  return `{{ogd_banner_${banner.id}}}`;
 }
 
 function linkLabel(banner: EmailBanner): string {
@@ -312,7 +307,6 @@ onMounted(() => {
               </p>
             </div>
             <div class="ogd:flex ogd:flex-wrap ogd:gap-2.5">
-              <CopyButton :value="mergeTagCode(banner)" />
               <button
                 v-if="funnelKit?.available"
                 class="ogd:inline-flex ogd:cursor-pointer ogd:items-center ogd:rounded-full ogd:border ogd:border-gray-200 ogd:bg-white ogd:px-3.5 ogd:py-2 ogd:text-[12.5px] ogd:font-semibold ogd:text-gray-700 ogd:transition ogd:hover:border-primary ogd:hover:text-primary"
