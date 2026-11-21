@@ -64,27 +64,45 @@ function linkLabel(banner: EmailBanner): string {
   return banner.link === "none" ? "No link" : "Custom link";
 }
 
-/** Short "CartBounty · First email" summary of a banner's assignment. */
-function cartBountyLabel(banner: EmailBanner): string {
+/** Active integrations a banner is wired into, shown as card badges. */
+type BannerIntegration = {
+  label: string;
+  detail: string;
+  tone: "neutral" | "primary";
+};
+
+function bannerIntegrations(banner: EmailBanner): BannerIntegration[] {
+  const list: BannerIntegration[] = [];
+
+  // FunnelKit active = this banner's merge tag is registered and pickable.
+  if (funnelKit.value?.available) {
+    list.push({
+      label: "FunnelKit",
+      detail: "",
+      tone: "neutral",
+    });
+  }
+
   const assignment = banner.cartbounty;
 
-  if (!assignment) {
-    return "";
+  if (assignment && cartBounty.value) {
+    const email = cartBounty.value.emails?.find(
+      (item) => item.id === assignment.email,
+    );
+    const placement = cartBounty.value.placements?.find(
+      (item) => item.value === assignment.placement,
+    );
+
+    list.push({
+      label: "CartBounty",
+      detail: [email?.name, placement?.label.toLowerCase()]
+        .filter(Boolean)
+        .join(" · "),
+      tone: "primary",
+    });
   }
 
-  const email = cartBounty.value?.emails?.find(
-    (item) => item.id === assignment.email,
-  );
-  const placement = cartBounty.value?.placements?.find(
-    (item) => item.value === assignment.placement,
-  );
-
-  const parts = ["CartBounty", email?.name];
-  if (placement) {
-    parts.push(placement.label.toLowerCase());
-  }
-
-  return parts.filter(Boolean).join(" · ");
+  return list;
 }
 
 async function load() {
@@ -288,10 +306,21 @@ onMounted(() => {
                   {{ banner.name }}
                 </h2>
                 <span
-                  v-if="cartBountyLabel(banner)"
-                  class="ogd:inline-flex ogd:items-center ogd:rounded-full ogd:bg-primary-soft ogd:px-2 ogd:py-px ogd:text-[10.5px] ogd:font-semibold ogd:text-primary"
+                  v-for="badge in bannerIntegrations(banner)"
+                  :key="badge.label"
+                  class="ogd:inline-flex ogd:items-center ogd:rounded-full ogd:px-2 ogd:py-px ogd:text-[10.5px] ogd:font-semibold"
+                  :class="
+                    badge.tone === 'primary'
+                      ? 'ogd:bg-primary-soft ogd:text-primary'
+                      : 'ogd:bg-gray-100 ogd:text-gray-600'
+                  "
+                  :title="
+                    badge.label === 'FunnelKit'
+                      ? 'Merge tag registered — pickable in FunnelKit emails'
+                      : 'Assigned to this CartBounty recovery email'
+                  "
                 >
-                  {{ cartBountyLabel(banner) }}
+                  {{ badge.label }}{{ badge.detail ? " · " + badge.detail : "" }}
                 </span>
               </div>
               <p class="ogd:mt-1 ogd:mb-0 ogd:text-sm ogd:text-gray-500">
