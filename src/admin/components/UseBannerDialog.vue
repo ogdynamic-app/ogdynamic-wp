@@ -174,10 +174,10 @@ async function saveAssignment() {
   <DialogRoot v-model:open="open">
     <DialogPortal>
       <DialogOverlay
-        class="ogd:fixed ogd:inset-0 ogd:z-99990 ogd:bg-gray-900/40 backdrop-filter:ogd:backdrop-blur-[2px]"
+        class="ogd:fixed ogd:inset-0 ogd:z-99990 ogd:bg-gray-900/40 backdrop-filter:ogd:backdrop-blur-[2px] ogd:data-[state=open]:animate-overlay-in ogd:data-[state=closed]:animate-overlay-out"
       />
       <DialogContent
-        class="ogd:fixed ogd:top-1/2 ogd:left-1/2 ogd:z-99995 ogd:max-h-[85vh] ogd:w-full ogd:max-w-lg ogd:-translate-x-1/2 ogd:-translate-y-1/2 ogd:overflow-y-auto ogd:rounded-[20px] ogd:border! ogd:border-gray-100! ogd:bg-white ogd:p-6 ogd:shadow-xl focus:ogd:outline-none"
+        class="ogd:fixed ogd:top-1/2 ogd:left-1/2 ogd:z-99995 ogd:max-h-[85vh] ogd:w-full ogd:max-w-lg ogd:-translate-x-1/2 ogd:-translate-y-1/2 ogd:overflow-y-auto ogd:rounded-[20px] ogd:border! ogd:border-gray-100! ogd:bg-white ogd:p-6 ogd:shadow-xl ogd:data-[state=open]:animate-dialog-in ogd:data-[state=closed]:animate-dialog-out focus:ogd:outline-none"
       >
         <!-- FunnelKit mode: banner-specific merge tag + steps. -->
         <template v-if="mode === 'funnelkit'">
