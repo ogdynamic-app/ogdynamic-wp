@@ -27,12 +27,6 @@ const cartBounty = computed<IntegrationStatus | undefined>(() =>
   integrations.value.find((item) => item.slug === "cartbounty"),
 );
 
-/** WordPress.org install URLs for the supported integrations. */
-const installUrls: Record<string, string> = {
-  funnelkit: "https://wordpress.org/plugins/wp-marketing-automations/",
-  cartbounty: "https://wordpress.org/plugins/woo-save-abandoned-carts/",
-};
-
 // Per-banner usage dialog ("Use in FunnelKit" / "Use in CartBounty").
 const dialogOpen = ref(false);
 const dialogMode = ref<"funnelkit" | "cartbounty">("funnelkit");
@@ -196,46 +190,32 @@ onMounted(() => {
     </div>
 
     <template v-else>
-      <!-- Integration availability chips (usage help lives on each banner). -->
+      <!-- Active integrations only (usage help lives on each banner). -->
       <div
-        v-if="integrations.length"
+        v-if="integrations.some((integration) => integration.available)"
         class="ogd:mt-6 ogd:flex ogd:flex-wrap ogd:items-center ogd:gap-2"
       >
-        <template v-for="integration in integrations" :key="integration.slug">
-          <span
-            class="ogd:inline-flex ogd:items-center ogd:gap-1.5 ogd:rounded-full ogd:px-3 ogd:py-1 ogd:text-[12px] ogd:font-semibold"
-            :class="
-              integration.available
-                ? 'ogd:bg-success-soft ogd:text-success-text'
-                : 'ogd:bg-gray-100 ogd:text-gray-500'
-            "
+        <span
+          v-for="integration in integrations.filter(
+            (item) => item.available,
+          )"
+          :key="integration.slug"
+          class="ogd:inline-flex ogd:items-center ogd:gap-1.5 ogd:rounded-full ogd:bg-success-soft ogd:px-3 ogd:py-1 ogd:text-[12px] ogd:font-semibold ogd:text-success-text"
+        >
+          <svg
+            class="ogd:size-3"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
           >
-            <svg
-              class="ogd:size-3"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2.5"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              aria-hidden="true"
-            >
-              <path v-if="integration.available" d="M20 6 9 17l-5-5" />
-              <path v-else d="M18 6 6 18" />
-              <path v-if="!integration.available" d="m6 6 12 12" />
-            </svg>
-            {{ integration.label }}
-          </span>
-          <a
-            v-if="!integration.available && installUrls[integration.slug]"
-            class="ogd:text-[12px] ogd:font-semibold ogd:text-primary ogd:no-underline hover:ogd:underline"
-            :href="installUrls[integration.slug]"
-            target="_blank"
-            rel="noreferrer"
-          >
-            Get {{ integration.label }} →
-          </a>
-        </template>
+            <path d="M20 6 9 17l-5-5" />
+          </svg>
+          {{ integration.label }}
+        </span>
       </div>
 
       <div
@@ -334,6 +314,7 @@ onMounted(() => {
             <div class="ogd:flex ogd:flex-wrap ogd:gap-2.5">
               <CopyButton :value="mergeTagCode(banner)" />
               <button
+                v-if="funnelKit?.available"
                 class="ogd:inline-flex ogd:cursor-pointer ogd:items-center ogd:rounded-full ogd:border ogd:border-gray-200 ogd:bg-white ogd:px-3.5 ogd:py-2 ogd:text-[12.5px] ogd:font-semibold ogd:text-gray-700 ogd:transition ogd:hover:border-primary ogd:hover:text-primary"
                 type="button"
                 @click="openDialog(banner, 'funnelkit')"
@@ -341,12 +322,24 @@ onMounted(() => {
                 Use in FunnelKit
               </button>
               <button
-                class="ogd:inline-flex ogd:cursor-pointer ogd:items-center ogd:rounded-full ogd:border ogd:border-gray-200 ogd:bg-white ogd:px-3.5 ogd:py-2 ogd:text-[12.5px] ogd:font-semibold ogd:text-gray-700 ogd:transition ogd:hover:border-primary ogd:hover:text-primary"
+                v-if="cartBounty?.available"
+                class="ogd:inline-flex ogd:cursor-pointer ogd:items-center ogd:gap-1.5 ogd:rounded-full ogd:border ogd:border-gray-200 ogd:bg-white ogd:px-3.5 ogd:py-2 ogd:text-[12.5px] ogd:font-semibold ogd:text-gray-700 ogd:transition ogd:hover:border-primary ogd:hover:text-primary"
                 type="button"
-                :disabled="!cartBounty"
-                :title="cartBounty ? '' : 'CartBounty is not installed'"
                 @click="openDialog(banner, 'cartbounty')"
               >
+                <svg
+                  v-if="banner.cartbounty"
+                  class="ogd:size-3.5 ogd:text-success-text"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M20 6 9 17l-5-5" />
+                </svg>
                 Use in CartBounty
               </button>
               <RouterLink
