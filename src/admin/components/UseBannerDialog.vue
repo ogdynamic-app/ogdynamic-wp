@@ -91,13 +91,20 @@ const emailId = ref("");
 const placement = ref("");
 
 // Reset the form each time the dialog opens so it reflects the banner's
-// current assignment (the parent may swap banners while closed).
-watch(open, (isOpen) => {
-  if (isOpen) {
-    emailId.value = savedEmail.value;
-    placement.value = savedPlacement.value;
-  }
-});
+// current assignment. `immediate` covers mounting with open already true
+// (the parent sets banner + open in one click, so this component mounts
+// mid-open and a plain watch would never fire); watching the banner too
+// covers the parent swapping banners while open.
+watch(
+  [open, () => props.banner],
+  ([isOpen]) => {
+    if (isOpen) {
+      emailId.value = savedEmail.value;
+      placement.value = savedPlacement.value;
+    }
+  },
+  { immediate: true },
+);
 
 const emailName = computed(
   () =>
