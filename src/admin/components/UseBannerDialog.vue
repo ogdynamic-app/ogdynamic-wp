@@ -40,13 +40,6 @@ const api = useOgdApi();
 
 const mergeTag = computed(() => `{{ogd_banner_${props.banner.id}}}`);
 
-const funnelKitSteps = computed(() => [
-  "Open FunnelKit Automations and edit your abandoned cart automation email (or create one from the Cart Abandoned trigger).",
-  "Click inside any text block, then open the Merge tags picker above the editor.",
-  "Pick the ogdynamic group and select “" + props.banner.name + "” — the tag is inserted for you.",
-  "Send a test email to check the placement, then activate the automation.",
-]);
-
 const emails = computed<CartBountyEmail[]>(
   () => props.status?.emails ?? [],
 );
@@ -193,23 +186,24 @@ async function saveAssignment() {
           </DialogDescription>
 
           <template v-if="status?.available">
-            <ol
-              class="ogd:mt-4 ogd:mb-0 ogd:list-decimal ogd:pl-5 ogd:text-sm ogd:leading-relaxed ogd:text-gray-600"
+            <p
+              class="ogd:mt-4 ogd:mb-3 ogd:text-sm ogd:leading-relaxed ogd:text-gray-600"
             >
-              <li v-for="step in funnelKitSteps" :key="step">{{ step }}</li>
-            </ol>
+              Copy this code and place it wherever you want the banner in your
+              email — it works anywhere in the body.
+            </p>
+
+            <div class="ogd:rounded-[14px] ogd:border ogd:border-gray-100 ogd:bg-gray-50 ogd:p-4">
+              <CopyButton :value="mergeTag" />
+            </div>
 
             <div
-              class="ogd:mt-4 ogd:rounded-[14px] ogd:border ogd:border-gray-100 ogd:bg-gray-50 ogd:p-4"
+              class="ogd:mt-4 ogd:rounded-[14px] ogd:border ogd:border-gray-100 ogd:bg-white ogd:px-3.5 ogd:py-3 ogd:text-[13px] ogd:leading-relaxed ogd:text-gray-500"
             >
-              <p
-                class="ogd:m-0 ogd:text-[12.5px] ogd:font-semibold ogd:tracking-wide ogd:text-gray-400 ogd:uppercase"
-              >
-                Or paste the tag anywhere in the email body
-              </p>
-              <div class="ogd:mt-2">
-                <CopyButton :value="mergeTag" />
-              </div>
+              Prefer the picker? Click into a text block in the FunnelKit email
+              editor and open the Merge tags picker — the banner sits in the
+              ogdynamic group, searchable by its name
+              “{{ banner.name }}”.
             </div>
 
             <p
