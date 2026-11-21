@@ -185,34 +185,6 @@ onMounted(() => {
     </div>
 
     <template v-else>
-      <!-- Active integrations only (usage help lives on each banner). -->
-      <div
-        v-if="integrations.some((integration) => integration.available)"
-        class="ogd:mt-6 ogd:flex ogd:flex-wrap ogd:items-center ogd:gap-2"
-      >
-        <span
-          v-for="integration in integrations.filter(
-            (item) => item.available,
-          )"
-          :key="integration.slug"
-          class="ogd:inline-flex ogd:items-center ogd:gap-1.5 ogd:rounded-full ogd:bg-success-soft ogd:px-3 ogd:py-1 ogd:text-[12px] ogd:font-semibold ogd:text-success-text"
-        >
-          <svg
-            class="ogd:size-3"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2.5"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M20 6 9 17l-5-5" />
-          </svg>
-          {{ integration.label }}
-        </span>
-      </div>
-
       <div
         v-if="api.error.value"
         class="ogd:mt-5 ogd:rounded-[14px] ogd:border ogd:border-destructive/25 ogd:bg-destructive/5 ogd:px-3.5 ogd:py-3 ogd:text-destructive"
