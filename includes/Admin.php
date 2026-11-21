@@ -73,16 +73,21 @@ class Admin {
 			return;
 		}
 
+		// Asset URLs are stable across builds, so cache-bust with the
+		// file's modification time — every rebuild gets a fresh version
+		// query even before the plugin version is bumped.
+		$version = (string) filemtime( OGDYNAMIC_PATH . 'dist/admin/.vite/manifest.json' );
+
 		wp_enqueue_script(
 			'ogdynamic-admin',
 			$asset['js'],
 			array(),
-			OGDYNAMIC_VERSION,
+			$version,
 			true
 		);
 
 		foreach ( $asset['css'] as $index => $css ) {
-			wp_enqueue_style( 'ogdynamic-admin-css-' . $index, $css, array(), OGDYNAMIC_VERSION );
+			wp_enqueue_style( 'ogdynamic-admin-css-' . $index, $css, array(), $version );
 		}
 
 		self::localize_admin_script();
@@ -169,7 +174,7 @@ class Admin {
 			'ogdynamic-admin',
 			'ogdynamicAdmin',
 			array(
-				'restUrl' => esc_url_raw( rest_url( 'ogdynamic/v1/' ) ),
+				'restUrl' => esc_url_raw( rest_url( RestController::NAMESPACE . '/' ) ),
 				'apiUrl'  => esc_url_raw( OGDYNAMIC_API ),
 				'cdnUrl'  => esc_url_raw( OGDYNAMIC_CDN ),
 				'nonce'   => wp_create_nonce( 'wp_rest' ),

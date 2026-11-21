@@ -6,6 +6,7 @@ import { useOgdApi } from "../composables/useOgdApi";
 import { useOgdCloudApi } from "../composables/useOgdCloudApi";
 import FormField from "../components/forms/FormField.vue";
 import SearchableSelectInput from "../components/forms/SearchableSelectInput.vue";
+import AppButton from "../components/AppButton.vue";
 
 type FieldOption = {
   key: string;
@@ -453,9 +454,9 @@ onMounted(async () => {
         <div
           class="ogd:flex ogd:shrink-0 ogd:flex-wrap ogd:justify-end ogd:gap-2.5 max-[720px]:ogd:justify-start"
         >
-          <button
-            class="ogd:inline-flex ogd:size-10 ogd:cursor-pointer ogd:items-center ogd:justify-center ogd:rounded-full ogd:border ogd:border-gray-200 ogd:bg-white ogd:text-gray-700 ogd:transition ogd:hover:border-primary ogd:hover:bg-primary-soft ogd:hover:text-primary ogd:disabled:cursor-not-allowed ogd:disabled:opacity-50"
-            type="button"
+          <AppButton
+            variant="secondary"
+            size="icon"
             title="Refresh canvases"
             aria-label="Refresh canvases"
             :disabled="canvasesLoading"
@@ -476,15 +477,14 @@ onMounted(async () => {
               <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
               <path d="M16 8h5V3" />
             </svg>
-          </button>
-          <a
+          </AppButton>
+          <AppButton
             v-if="editCanvasUrl"
-            class="ogd:inline-flex ogd:size-10 ogd:items-center ogd:justify-center ogd:rounded-full ogd:border ogd:border-gray-200 ogd:bg-white ogd:text-gray-700 ogd:no-underline ogd:transition ogd:hover:border-primary ogd:hover:bg-primary-soft ogd:hover:text-primary"
+            variant="secondary"
+            size="icon"
             :href="editCanvasUrl"
             title="Edit canvas"
             aria-label="Edit canvas"
-            target="_blank"
-            rel="noreferrer"
           >
             <svg
               class="ogd:size-4"
@@ -501,14 +501,13 @@ onMounted(async () => {
               />
               <path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4Z" />
             </svg>
-          </a>
-          <a
-            class="ogd:inline-flex ogd:size-10 ogd:items-center ogd:justify-center ogd:rounded-full ogd:border ogd:border-gray-200 ogd:bg-white ogd:text-gray-700 ogd:no-underline ogd:transition ogd:hover:border-primary ogd:hover:bg-primary-soft ogd:hover:text-primary"
+          </AppButton>
+          <AppButton
+            variant="secondary"
+            size="icon"
             :href="createCanvasUrl"
             title="Create canvas"
             aria-label="Create canvas"
-            target="_blank"
-            rel="noreferrer"
           >
             <svg
               class="ogd:size-4"
@@ -523,7 +522,7 @@ onMounted(async () => {
               <path d="M5 12h14" />
               <path d="M12 5v14" />
             </svg>
-          </a>
+          </AppButton>
         </div>
       </div>
       <div
@@ -667,9 +666,8 @@ onMounted(async () => {
         </div>
 
         <div class="ogd:mt-5 ogd:flex ogd:flex-wrap ogd:gap-2.5">
-          <button
-            class="ogd:inline-flex ogd:cursor-pointer ogd:items-center ogd:justify-center ogd:gap-2 ogd:rounded-full ogd:border ogd:border-transparent ogd:bg-primary ogd:px-4.5 ogd:py-2.5 ogd:text-[13px] ogd:font-semibold ogd:text-white ogd:transition ogd:hover:border-primary-hover ogd:hover:bg-primary-hover ogd:disabled:cursor-not-allowed ogd:disabled:opacity-50"
-            type="button"
+          <AppButton
+            size="lg"
             :disabled="
               !formPayload.template_id ||
               wordpressApi.loading.value ||
@@ -693,11 +691,11 @@ onMounted(async () => {
               <circle cx="16" cy="9" r="1" />
             </svg>
             {{ templateExists ? "Update Template" : "Activate Template" }}
-          </button>
-          <button
+          </AppButton>
+          <AppButton
             v-if="templateExists"
-            class="ogd:inline-flex ogd:cursor-pointer ogd:items-center ogd:justify-center ogd:gap-2 ogd:rounded-full ogd:border ogd:border-destructive/40 ogd:bg-white ogd:px-4.5 ogd:py-2.5 ogd:text-[13px] ogd:font-semibold ogd:text-destructive ogd:transition ogd:hover:border-destructive ogd:hover:bg-destructive ogd:hover:text-white ogd:disabled:cursor-not-allowed ogd:disabled:opacity-50"
-            type="button"
+            variant="danger"
+            size="lg"
             :disabled="wpDeleteApi.loading.value"
             @click="deactivate"
           >
@@ -719,7 +717,7 @@ onMounted(async () => {
                 ? "Deactivating..."
                 : "Deactivate Template"
             }}
-          </button>
+          </AppButton>
         </div>
 
         <div

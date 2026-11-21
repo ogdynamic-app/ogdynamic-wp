@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { RouterLink } from "vue-router";
 import { adminNavigation } from "../navigation";
+import AppButton from "./AppButton.vue";
 import Logo from "./Logo.vue";
 </script>
 
@@ -64,11 +65,9 @@ import Logo from "./Logo.vue";
       </RouterLink>
     </nav>
 
-    <a
-      class="ogd:flex ogd:shrink-0 ogd:items-center ogd:justify-center ogd:rounded-full ogd:bg-primary! ogd:px-4 ogd:py-2 ogd:text-sm! ogd:font-semibold ogd:text-white! ogd:no-underline ogd:transition-all ogd:duration-150! ogd:hover:bg-primary-hover!"
+    <AppButton
       href="https://ogdynamic.com/canvases"
-      target="_blank"
-      rel="noreferrer"
+      class="ogd:shrink-0 ogd:text-sm!"
     >
       <svg
         class="ogd:size-4 ogd:mr-2"
@@ -85,6 +84,6 @@ import Logo from "./Logo.vue";
         <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
       </svg>
       My Canvases
-    </a>
+    </AppButton>
   </header>
 </template>

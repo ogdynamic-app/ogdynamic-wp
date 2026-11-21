@@ -8,6 +8,7 @@
 namespace OGDynamic\Controllers;
 
 use OGDynamic\ImageGenerator;
+use OGDynamic\RestController;
 use OGDynamic\Template;
 use WP_REST_Request;
 use WP_REST_Server;
@@ -27,7 +28,7 @@ class TemplatesController {
 	 */
 	public static function init(): void {
 		register_rest_route(
-			'ogdynamic/v1',
+			RestController::NAMESPACE,
 			'/templates',
 			array(
 				array(
@@ -39,7 +40,7 @@ class TemplatesController {
 		);
 
 		register_rest_route(
-			'ogdynamic/v1',
+			RestController::NAMESPACE,
 			'/templates/(?P<post_type>[a-z0-9_-]+)',
 			array(
 				array(

@@ -2,6 +2,7 @@
 import { computed, shallowRef } from "vue";
 import { isConnected } from "../state/connection";
 import { useOgdConnection } from "../composables/useOgdConnection";
+import AppButton from "../components/AppButton.vue";
 
 const connection = useOgdConnection();
 const success = shallowRef("");
@@ -65,21 +66,21 @@ async function disconnect() {
           </p>
         </div>
 
-        <button
+        <AppButton
           v-if="isConnected"
-          class="ogd:inline-flex ogd:cursor-pointer ogd:items-center ogd:justify-center ogd:gap-2 ogd:rounded-full ogd:border ogd:border-destructive/40 ogd:bg-white ogd:px-[18px] ogd:py-2.5 ogd:text-[13px] ogd:font-semibold ogd:text-destructive ogd:transition ogd:hover:border-destructive ogd:hover:bg-destructive ogd:hover:text-white ogd:disabled:cursor-not-allowed ogd:disabled:opacity-50"
-          type="button"
+          variant="danger"
+          size="lg"
           :disabled="connection.loading.value"
           @click="disconnect"
         >
           Disconnect
-        </button>
+        </AppButton>
       </div>
 
-      <button
+      <AppButton
         v-if="!isConnected"
-        class="ogd:mt-7 ogd:inline-flex ogd:w-full ogd:cursor-pointer ogd:items-center ogd:justify-center ogd:gap-2 ogd:rounded-2xl ogd:border ogd:border-transparent ogd:bg-primary ogd:px-5 ogd:py-4 ogd:text-sm ogd:font-semibold ogd:text-white ogd:transition ogd:hover:bg-primary-hover ogd:disabled:cursor-not-allowed ogd:disabled:opacity-50"
-        type="button"
+        size="hero"
+        class="ogd:mt-7"
         :disabled="connection.loading.value"
         @click="connect"
       >
@@ -97,7 +98,7 @@ async function disconnect() {
           <path d="M14 11a5 5 0 0 0-7.07 0L4.1 13.83a5 5 0 0 0 7.07 7.07L13 19.07" />
         </svg>
         {{ connection.loading.value ? "Starting connection..." : "Connect ogdynamic" }}
-      </button>
+      </AppButton>
 
       <div
         v-if="connection.error.value"
