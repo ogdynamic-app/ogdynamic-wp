@@ -9,7 +9,7 @@ namespace OGDynamic;
 
 use OGDynamic\Controllers\BlockController;
 use OGDynamic\Controllers\ConnectionController;
-use OGDynamic\Controllers\EmailBannersController;
+use OGDynamic\Controllers\CartBannersController;
 use OGDynamic\Controllers\TemplatesController;
 
 class RestController {
@@ -27,6 +27,6 @@ class RestController {
 		BlockController::init();
 		ConnectionController::init();
 		TemplatesController::init();
-		EmailBannersController::init();
+		CartBannersController::init();
 	}
 }

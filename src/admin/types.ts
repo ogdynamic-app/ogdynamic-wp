@@ -51,7 +51,7 @@ export type CursorPage<T> = {
   meta?: { next_cursor?: string | null };
 };
 
-export type EmailBannerMapEntry = {
+export type CartBannerMapEntry = {
   attr_key: string;
   /** Source key, `custom`, or `''` (canvas default). */
   key: string;
@@ -67,7 +67,7 @@ export type CartBountyAssignment = {
   placement: string;
 };
 
-export type EmailBanner = {
+export type CartBanner = {
   id: string;
   name: string;
   canvas_id: string;
@@ -77,14 +77,14 @@ export type EmailBanner = {
   /** `recovery`, `none`, or a URL. */
   link: string;
   display_width: number;
-  map: EmailBannerMapEntry[];
+  map: CartBannerMapEntry[];
   /** CartBounty email assignment, or null when the banner is unused there. */
   cartbounty?: CartBountyAssignment | null;
   created_at: string;
   updated_at: string;
 };
 
-export type EmailBannerSource = {
+export type CartBannerSource = {
   key: string;
   label: string;
   group: string;
@@ -116,9 +116,9 @@ export type IntegrationStatus = {
   placements?: CartBountyPlacement[];
 };
 
-export type EmailBannersPayload = {
-  data: EmailBanner[];
-  sources: EmailBannerSource[];
+export type CartBannersPayload = {
+  data: CartBanner[];
+  sources: CartBannerSource[];
   integrations: IntegrationStatus[];
 };
 

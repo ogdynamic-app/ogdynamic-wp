@@ -1,6 +1,6 @@
 <?php
 /**
- * Shared email banner source catalog.
+ * Shared cart banner source catalog.
  *
  * @package OGD
  */
@@ -8,9 +8,9 @@
 namespace OGDynamic\Integrations;
 
 /**
- * Class EmailBannerSources
+ * Class CartBannerSources
  *
- * The universal "abandoned cart data" vocabulary every email banner maps
+ * The universal "abandoned cart data" vocabulary every cart banner maps
  * canvas fields to. Keys are integration-agnostic: each integration
  * declares which keys it can resolve at send time (see Integration::
  * resolvable_sources()) and resolves them from its own data model, so a
@@ -19,7 +19,7 @@ namespace OGDynamic\Integrations;
  * Site sources are core: they resolve from plain WordPress data with no
  * integration involved.
  */
-class EmailBannerSources {
+class CartBannerSources {
 
 	/**
 	 * Source keys resolved by this class (no integration needed).

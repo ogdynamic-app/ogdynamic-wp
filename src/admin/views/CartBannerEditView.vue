@@ -4,9 +4,9 @@ import { RouterLink, useRoute, useRouter } from "vue-router";
 import type {
   ApiData,
   CursorPage,
-  EmailBanner,
-  EmailBannerSource,
-  EmailBannersPayload,
+  CartBanner,
+  CartBannerSource,
+  CartBannersPayload,
   OGDCanvas,
   OGDCanvasSummary,
 } from "../types";
@@ -39,7 +39,7 @@ const isLoading = ref(true);
 const bannerExists = ref(false);
 const success = ref("");
 
-const sources = shallowRef<EmailBannerSource[]>([]);
+const sources = shallowRef<CartBannerSource[]>([]);
 
 const canvases = shallowRef<OGDCanvasSummary[]>([]);
 const canvas = shallowRef<OGDCanvas>();
@@ -185,8 +185,8 @@ watch(
 );
 
 async function loadBanner() {
-  const payload = await wordpressApi.request<EmailBannersPayload>(
-    "email-banners",
+  const payload = await wordpressApi.request<CartBannersPayload>(
+    "cart-banners",
   );
 
   sources.value = payload.sources ?? [];
@@ -357,7 +357,7 @@ function syncFieldMap() {
 
 function findMatchingSource(
   field: FieldOption,
-): EmailBannerSource | undefined {
+): CartBannerSource | undefined {
   const normalizedField = normalizeMappingKey(field.key);
   const normalizedLabel = normalizeMappingKey(field.label);
   const fieldKeys = [normalizedField, normalizedLabel].filter(Boolean);
@@ -407,8 +407,8 @@ async function save() {
   };
 
   try {
-    const response = await saveApi.request<{ data: EmailBanner }>(
-      isNew.value ? "email-banners" : `email-banners/${bannerId.value}`,
+    const response = await saveApi.request<{ data: CartBanner }>(
+      isNew.value ? "cart-banners" : `cart-banners/${bannerId.value}`,
       {
         method: isNew.value ? "POST" : "PUT",
         body: payload,
@@ -419,7 +419,7 @@ async function save() {
     success.value = isNew.value ? "Banner created." : "Banner updated.";
 
     if (isNew.value && response.data?.id) {
-      await router.replace(`/email-banners/${response.data.id}`);
+      await router.replace(`/cart-banners/${response.data.id}`);
     }
   } catch {
     // Error handled by API error state.
@@ -433,10 +433,10 @@ async function remove() {
     confirmingDelete.value = "";
 
     try {
-      await deleteApi.request<{ data: [] }>(`email-banners/${bannerId.value}`, {
+      await deleteApi.request<{ data: [] }>(`cart-banners/${bannerId.value}`, {
         method: "DELETE",
       });
-      await router.push("/email-banners");
+      await router.push("/cart-banners");
     } catch {
       // Error handled by API error state.
     }
@@ -470,7 +470,7 @@ onMounted(async () => {
     <!-- Page heading and return navigation. -->
     <RouterLink
       class="ogd:mb-5 ogd:inline-flex ogd:text-sm! ogd:font-semibold! ogd:text-primary! ogd:hover:text-primary-hover!"
-      to="/email-banners"
+      to="/cart-banners"
     >
       Back to cart banners
     </RouterLink>

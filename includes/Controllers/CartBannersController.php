@@ -1,27 +1,27 @@
 <?php
 /**
- * Email banners REST API endpoints.
+ * Cart banners REST API endpoints.
  *
  * @package OGD
  */
 
 namespace OGDynamic\Controllers;
 
-use OGDynamic\EmailBanners;
-use OGDynamic\Integrations\EmailBannerSources;
+use OGDynamic\CartBanners;
+use OGDynamic\Integrations\CartBannerSources;
 use OGDynamic\Integrations\IntegrationManager;
 use OGDynamic\RestController;
 use WP_REST_Request;
 use WP_REST_Server;
 
 /**
- * Class EmailBannersController
+ * Class CartBannersController
  *
- * REST API controller for managing personalized email banners. FunnelKit
+ * REST API controller for managing personalized cart banners. FunnelKit
  * reads the same option through FunnelKitIntegration, so every change is
  * live for the next email send.
  */
-class EmailBannersController {
+class CartBannersController {
 
 	/**
 	 * Initializes REST API routes.
@@ -31,7 +31,7 @@ class EmailBannersController {
 	public static function init(): void {
 		register_rest_route(
 			RestController::NAMESPACE,
-			'/email-banners',
+			'/cart-banners',
 			array(
 				array(
 					'methods'             => WP_REST_Server::READABLE,
@@ -49,7 +49,7 @@ class EmailBannersController {
 
 		register_rest_route(
 			RestController::NAMESPACE,
-			'/email-banners/(?P<id>[a-f0-9]{12})',
+			'/cart-banners/(?P<id>[a-f0-9]{12})',
 			array(
 				array(
 					'methods'             => WP_REST_Server::EDITABLE,
@@ -73,7 +73,7 @@ class EmailBannersController {
 	}
 
 	/**
-	 * Checks if user can manage email banners.
+	 * Checks if user can manage cart banners.
 	 *
 	 * @return bool True if user has permission, false otherwise.
 	 */
@@ -89,7 +89,7 @@ class EmailBannersController {
 	public static function get(): \WP_REST_Response {
 		return rest_ensure_response(
 			array(
-				'data'         => array_values( EmailBanners::get_all() ),
+				'data'         => array_values( CartBanners::get_all() ),
 				'sources'      => IntegrationManager::sources(),
 				'integrations' => IntegrationManager::status(),
 			)
@@ -111,7 +111,7 @@ class EmailBannersController {
 
 		return rest_ensure_response(
 			array(
-				'data' => EmailBanners::save( $banner ),
+				'data' => CartBanners::save( $banner ),
 			)
 		);
 	}
@@ -125,12 +125,12 @@ class EmailBannersController {
 	public static function update( WP_REST_Request $request ) {
 		$id = (string) $request->get_param( 'id' );
 
-		$existing = EmailBanners::get( $id );
+		$existing = CartBanners::get( $id );
 
 		if ( null === $existing ) {
 			return new \WP_Error(
 				'ogd_banner_not_found',
-				__( 'Email banner not found.', 'ogdynamic' ),
+				__( 'Cart banner not found.', 'ogdynamic' ),
 				array( 'status' => 404 )
 			);
 		}
@@ -145,7 +145,7 @@ class EmailBannersController {
 
 		return rest_ensure_response(
 			array(
-				'data' => EmailBanners::save( $banner ),
+				'data' => CartBanners::save( $banner ),
 			)
 		);
 	}
@@ -158,12 +158,12 @@ class EmailBannersController {
 	 */
 	public static function delete( WP_REST_Request $request ) {
 		$id     = (string) $request->get_param( 'id' );
-		$exists = EmailBanners::delete( $id );
+		$exists = CartBanners::delete( $id );
 
 		if ( ! $exists ) {
 			return new \WP_Error(
 				'ogd_banner_not_found',
-				__( 'Email banner not found.', 'ogdynamic' ),
+				__( 'Cart banner not found.', 'ogdynamic' ),
 				array( 'status' => 404 )
 			);
 		}
@@ -207,7 +207,7 @@ class EmailBannersController {
 		}
 
 		$display_width = absint( $request->get_param( 'display_width' ) );
-		$display_width = 0 === $display_width ? EmailBanners::DEFAULT_DISPLAY_WIDTH : $display_width;
+		$display_width = 0 === $display_width ? CartBanners::DEFAULT_DISPLAY_WIDTH : $display_width;
 
 		$cartbounty = $request->has_param( 'cartbounty' )
 			? self::sanitize_assignment( $request->get_param( 'cartbounty' ) )
@@ -430,8 +430,8 @@ class EmailBannersController {
 	protected static function sanitize_link( $value ) {
 		$value = is_string( $value ) ? trim( $value ) : '';
 
-		if ( '' === $value || EmailBanners::LINK_RECOVERY === $value || EmailBanners::LINK_NONE === $value ) {
-			return EmailBanners::LINK_RECOVERY;
+		if ( '' === $value || CartBanners::LINK_RECOVERY === $value || CartBanners::LINK_NONE === $value ) {
+			return CartBanners::LINK_RECOVERY;
 		}
 
 		$url = esc_url_raw( $value );
@@ -458,7 +458,7 @@ class EmailBannersController {
 	 * @return string[] Source keys.
 	 */
 	protected static function source_keys(): array {
-		$keys = EmailBannerSources::keys();
+		$keys = CartBannerSources::keys();
 
 		foreach ( IntegrationManager::sources() as $source ) {
 			$keys[] = $source['key'];

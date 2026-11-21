@@ -12,7 +12,7 @@ export const adminRoutes = [
   },
   {
     ...adminNavigation[2],
-    component: () => import("./views/EmailBannersView.vue"),
+    component: () => import("./views/CartBannersView.vue"),
   },
   {
     path: "/connection",
@@ -27,10 +27,10 @@ export const adminRoutes = [
     component: () => import("./views/TemplatePostTypeView.vue"),
   },
   {
-    path: "/email-banners/:id",
-    name: "email-banner-edit",
-    label: "Email Banner",
-    component: () => import("./views/EmailBannerEditView.vue"),
+    path: "/cart-banners/:id",
+    name: "cart-banner-edit",
+    label: "Cart Banner",
+    component: () => import("./views/CartBannerEditView.vue"),
   },
 ] as const;
 

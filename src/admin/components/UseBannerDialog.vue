@@ -12,7 +12,7 @@ import {
 import type {
   CartBountyEmail,
   CartBountyPlacement,
-  EmailBanner,
+  CartBanner,
   IntegrationStatus,
 } from "../types";
 import { useOgdApi } from "../composables/useOgdApi";
@@ -24,7 +24,7 @@ import CopyButton from "./CopyButton.vue";
  * - `cartbounty`: email/placement assignment saved onto the banner.
  */
 const props = defineProps<{
-  banner: EmailBanner;
+  banner: CartBanner;
   mode: "funnelkit" | "cartbounty";
   status?: IntegrationStatus;
 }>();
@@ -137,8 +137,8 @@ async function saveAssignment() {
     : null;
 
   try {
-    await api.request<{ data: EmailBanner }>(
-      `email-banners/${props.banner.id}`,
+    await api.request<{ data: CartBanner }>(
+      `cart-banners/${props.banner.id}`,
       {
         method: "PUT",
         body: {

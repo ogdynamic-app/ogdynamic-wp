@@ -1,17 +1,17 @@
 <?php
 /**
- * Email banner model.
+ * Cart banner model.
  *
  * @package OGD
  */
 
 namespace OGDynamic;
 
-use OGDynamic\Integrations\EmailBannerSources;
+use OGDynamic\Integrations\CartBannerSources;
 use OGDynamic\Integrations\IntegrationManager;
 
 /**
- * Class EmailBanners
+ * Class CartBanners
  *
  * Personalized banner images for abandoned-cart (and other marketing)
  * emails. A banner pairs a canvas with a field mapping; integrations
@@ -19,7 +19,7 @@ use OGDynamic\Integrations\IntegrationManager;
  * mapping against per-recipient data at send time and outputs an
  * email-safe <img> pointing at the CDN render URL.
  */
-class EmailBanners {
+class CartBanners {
 
 	/**
 	 * Option key prefix for per-banner options: `ogdy_banner_{id}`.

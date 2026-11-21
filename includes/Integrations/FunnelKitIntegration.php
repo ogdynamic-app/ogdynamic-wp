@@ -7,14 +7,14 @@
 
 namespace OGDynamic\Integrations;
 
-use OGDynamic\EmailBanners;
+use OGDynamic\CartBanners;
 use OGDynamic\Integrations\FunnelKit\BannerTag;
 use OGDynamic\Integrations\FunnelKit\Sources;
 
 /**
  * Class FunnelKitIntegration
  *
- * Registers one FunnelKit merge tag per saved email banner. When a banner
+ * Registers one FunnelKit merge tag per saved cart banner. When a banner
  * is selected in the FunnelKit email builder ("Merge tags" picker,
  * ogdynamic group), the tag expands at send time into the email-safe
  * banner image personalized for that recipient's cart.
@@ -89,7 +89,7 @@ class FunnelKitIntegration implements Integration {
 	/**
 	 * Source keys FunnelKit resolves at send time from its merge tag data.
 	 *
-	 * Site sources are core (EmailBannerSources::CORE_KEYS) and omitted here.
+	 * Site sources are core (CartBannerSources::CORE_KEYS) and omitted here.
 	 *
 	 * @return string[]
 	 */
@@ -117,7 +117,7 @@ class FunnelKitIntegration implements Integration {
 	}
 
 	/**
-	 * Registers one merge tag per email banner.
+	 * Registers one merge tag per cart banner.
 	 *
 	 * Runs on `bwfan_merge_tags_loaded`, which FunnelKit fires whenever its
 	 * merge tag registry is needed (builder UI, merge tag parsing at send
@@ -136,7 +136,7 @@ class FunnelKitIntegration implements Integration {
 			return;
 		}
 
-		foreach ( EmailBanners::get_all() as $banner ) {
+		foreach ( CartBanners::get_all() as $banner ) {
 			if ( empty( $banner['id'] ) || empty( $banner['canvas_id'] ) ) {
 				continue;
 			}

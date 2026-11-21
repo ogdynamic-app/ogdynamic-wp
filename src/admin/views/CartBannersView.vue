@@ -2,8 +2,8 @@
 import { computed, onMounted, ref, shallowRef } from "vue";
 import { RouterLink } from "vue-router";
 import type {
-  EmailBanner,
-  EmailBannersPayload,
+  CartBanner,
+  CartBannersPayload,
   IntegrationStatus,
 } from "../types";
 import { useOgdApi } from "../composables/useOgdApi";
@@ -13,7 +13,7 @@ const api = useOgdApi();
 const deleteApi = useOgdApi();
 
 const isLoading = ref(true);
-const banners = shallowRef<EmailBanner[]>([]);
+const banners = shallowRef<CartBanner[]>([]);
 const integrations = shallowRef<IntegrationStatus[]>([]);
 
 const confirmingDelete = ref("");
@@ -29,9 +29,9 @@ const cartBounty = computed<IntegrationStatus | undefined>(() =>
 // Per-banner usage dialog ("Use in FunnelKit" / "Use in CartBounty").
 const dialogOpen = ref(false);
 const dialogMode = ref<"funnelkit" | "cartbounty">("funnelkit");
-const dialogBanner = ref<EmailBanner | undefined>();
+const dialogBanner = ref<CartBanner | undefined>();
 
-function openDialog(banner: EmailBanner, mode: "funnelkit" | "cartbounty") {
+function openDialog(banner: CartBanner, mode: "funnelkit" | "cartbounty") {
   dialogMode.value = mode;
   dialogBanner.value = banner;
   dialogOpen.value = true;
@@ -45,7 +45,7 @@ async function onDialogSaved() {
   await load();
 }
 
-function linkLabel(banner: EmailBanner): string {
+function linkLabel(banner: CartBanner): string {
   if (banner.link === "recovery") {
     return "Cart recovery link";
   }
@@ -60,7 +60,7 @@ type BannerIntegration = {
   tone: "neutral" | "primary";
 };
 
-function bannerIntegrations(banner: EmailBanner): BannerIntegration[] {
+function bannerIntegrations(banner: CartBanner): BannerIntegration[] {
   const list: BannerIntegration[] = [];
 
   // FunnelKit active = this banner's merge tag is registered and pickable.
@@ -98,7 +98,7 @@ async function load() {
   isLoading.value = true;
 
   try {
-    const payload = await api.request<EmailBannersPayload>("email-banners");
+    const payload = await api.request<CartBannersPayload>("cart-banners");
     banners.value = payload.data ?? [];
     integrations.value = payload.integrations ?? [];
   } catch {
@@ -108,7 +108,7 @@ async function load() {
   }
 }
 
-async function remove(banner: EmailBanner) {
+async function remove(banner: CartBanner) {
   if (confirmingDelete.value !== banner.id) {
     confirmingDelete.value = banner.id;
     return;
@@ -117,7 +117,7 @@ async function remove(banner: EmailBanner) {
   confirmingDelete.value = "";
 
   try {
-    await deleteApi.request<{ data: [] }>(`email-banners/${banner.id}`, {
+    await deleteApi.request<{ data: [] }>(`cart-banners/${banner.id}`, {
       method: "DELETE",
     });
     banners.value = banners.value.filter((item) => item.id !== banner.id);
@@ -151,7 +151,7 @@ onMounted(() => {
       </div>
       <RouterLink
         class="ogd:inline-flex ogd:cursor-pointer ogd:items-center ogd:justify-center ogd:gap-2 ogd:rounded-full ogd:border ogd:border-transparent ogd:bg-primary ogd:px-4.5 ogd:py-2.5 ogd:text-[13px] ogd:font-semibold ogd:text-white! ogd:no-underline ogd:transition ogd:hover:border-primary-hover ogd:hover:bg-primary-hover"
-        to="/email-banners/new"
+        to="/cart-banners/new"
       >
         <svg
           class="ogd:size-4"
@@ -229,7 +229,7 @@ onMounted(() => {
         </p>
         <RouterLink
           class="ogd:inline-flex ogd:cursor-pointer ogd:items-center ogd:justify-center ogd:gap-2 ogd:rounded-full ogd:border ogd:border-transparent ogd:bg-primary ogd:px-4.5 ogd:py-2.5 ogd:text-[13px] ogd:font-semibold ogd:text-white! ogd:no-underline ogd:transition ogd:hover:border-primary-hover ogd:hover:bg-primary-hover"
-          to="/email-banners/new"
+          to="/cart-banners/new"
         >
           Create your first banner
         </RouterLink>
@@ -310,7 +310,7 @@ onMounted(() => {
               </button>
               <RouterLink
                 class="ogd:inline-flex ogd:items-center ogd:rounded-full ogd:border ogd:border-gray-200 ogd:bg-white ogd:px-3.5 ogd:py-2 ogd:text-[12.5px] ogd:font-semibold ogd:text-gray-700 ogd:no-underline ogd:transition ogd:hover:border-primary ogd:hover:text-primary"
-                :to="`/email-banners/${banner.id}`"
+                :to="`/cart-banners/${banner.id}`"
               >
                 Edit
               </RouterLink>

@@ -127,8 +127,8 @@ class IntegrationManager {
 
 		$sources = array();
 
-		foreach ( EmailBannerSources::catalog() as $source ) {
-			if ( in_array( $source['key'], EmailBannerSources::CORE_KEYS, true ) || in_array( $source['key'], $resolvable, true ) ) {
+		foreach ( CartBannerSources::catalog() as $source ) {
+			if ( in_array( $source['key'], CartBannerSources::CORE_KEYS, true ) || in_array( $source['key'], $resolvable, true ) ) {
 				$sources[] = $source;
 			}
 		}
@@ -225,7 +225,7 @@ class IntegrationManager {
 		$resolved = array();
 
 		foreach ( $keys as $key ) {
-			$core = EmailBannerSources::core_resolve( (string) $key );
+			$core = CartBannerSources::core_resolve( (string) $key );
 
 			$resolved[ (string) $key ] = '' !== $core ? $core : $context->get( (string) $key );
 		}

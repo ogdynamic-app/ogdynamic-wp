@@ -1,13 +1,13 @@
 <?php
 /**
- * FunnelKit merge tag for a single email banner.
+ * FunnelKit merge tag for a single cart banner.
  *
  * @package OGD
  */
 
 namespace OGDynamic\Integrations\FunnelKit;
 
-use OGDynamic\EmailBanners;
+use OGDynamic\CartBanners;
 use OGDynamic\Integrations\FunnelKitIntegration;
 
 /**
@@ -67,7 +67,7 @@ class BannerTag extends \BWFAN_Merge_Tag {
 				__( 'Banner: %s', 'ogdynamic' ),
 				(string) $banner['name']
 			)
-			: __( 'Personalized email banner', 'ogdynamic' );
+			: __( 'Personalized cart banner', 'ogdynamic' );
 
 		add_shortcode( 'bwfan_' . $this->tag_name, array( $this, 'parse_shortcode' ) );
 
@@ -111,11 +111,11 @@ class BannerTag extends \BWFAN_Merge_Tag {
 		if ( true === \BWFAN_Merge_Tag_Loader::get_data( 'is_preview' ) ) {
 			// Builder preview renders the plain canvas with its designed
 			// defaults — placeholder recipient data here would mislead.
-			$markup = EmailBanners::image_markup(
+			$markup = CartBanners::image_markup(
 				$this->banner,
 				array(),
 				array(
-					'link' => EmailBanners::LINK_NONE,
+					'link' => CartBanners::LINK_NONE,
 					'alt'  => $this->tag_description,
 				)
 			);
@@ -123,21 +123,21 @@ class BannerTag extends \BWFAN_Merge_Tag {
 			return (string) $this->parse_shortcode_output( $markup, $atts );
 		}
 
-		$params = EmailBanners::resolve_params( $this->banner );
-		$params = EmailBanners::apply_attr_overrides( $params, $atts );
+		$params = CartBanners::resolve_params( $this->banner );
+		$params = CartBanners::apply_attr_overrides( $params, $atts );
 
 		$link = isset( $atts['link'] ) ? (string) $atts['link'] : '';
 		if ( '' === $link ) {
-			$link = (string) ( $this->banner['link'] ?? EmailBanners::LINK_RECOVERY );
+			$link = (string) ( $this->banner['link'] ?? CartBanners::LINK_RECOVERY );
 		}
 
-		if ( EmailBanners::LINK_NONE === $link ) {
-			$link = EmailBanners::LINK_NONE;
-		} elseif ( EmailBanners::LINK_RECOVERY !== $link ) {
+		if ( CartBanners::LINK_NONE === $link ) {
+			$link = CartBanners::LINK_NONE;
+		} elseif ( CartBanners::LINK_RECOVERY !== $link ) {
 			$link = esc_url_raw( $link );
 		}
 
-		$markup = EmailBanners::image_markup(
+		$markup = CartBanners::image_markup(
 			$this->banner,
 			$params,
 			array(

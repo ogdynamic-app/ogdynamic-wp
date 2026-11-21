@@ -45,7 +45,7 @@ interface Integration {
 	public static function init(): void;
 
 	/**
-	 * Source keys (EmailBannerSources::keys() subset) this integration can
+	 * Source keys (CartBannerSources::keys() subset) this integration can
 	 * resolve at send time. Drives which sources the mapping UI offers.
 	 *
 	 * @return string[]

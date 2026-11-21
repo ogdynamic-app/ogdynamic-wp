@@ -7,7 +7,7 @@
 
 namespace OGDynamic\Integrations;
 
-use OGDynamic\EmailBanners;
+use OGDynamic\CartBanners;
 use OGDynamic\Integrations\CartBounty\Sources;
 
 /**
@@ -120,7 +120,7 @@ class CartBountyIntegration implements Integration {
 		$available = self::is_available();
 		$active    = false;
 
-		foreach ( EmailBanners::get_all() as $banner ) {
+		foreach ( CartBanners::get_all() as $banner ) {
 			if ( ! empty( $banner['cartbounty'] ) ) {
 				$active = true;
 				break;
@@ -248,14 +248,14 @@ class CartBountyIntegration implements Integration {
 			$banner = $assignment['banner'];
 
 			if ( ! empty( $banner['id'] ) ) {
-				$params = EmailBanners::resolve_params( $banner );
+				$params = CartBanners::resolve_params( $banner );
 				$args   = array(
-					'link' => (string) ( $banner['link'] ?? EmailBanners::LINK_RECOVERY ),
+					'link' => (string) ( $banner['link'] ?? CartBanners::LINK_RECOVERY ),
 					'alt'  => (string) $banner['name'],
 				);
 
 				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- image_markup() escapes its URL/alt/link attributes.
-				echo EmailBanners::image_markup( $banner, $params, $args );
+				echo CartBanners::image_markup( $banner, $params, $args );
 
 				Sources::clear();
 				return;
@@ -296,7 +296,7 @@ class CartBountyIntegration implements Integration {
 	 * @return array|null {banner: array, placement: string} or null.
 	 */
 	protected static function assignment_for( int $step ): ?array {
-		foreach ( EmailBanners::get_all() as $banner ) {
+		foreach ( CartBanners::get_all() as $banner ) {
 			$assignment = $banner['cartbounty'] ?? null;
 
 			if ( ! is_array( $assignment ) || (int) ( $assignment['email'] ?? -1 ) !== $step ) {
