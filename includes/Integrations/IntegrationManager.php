@@ -213,15 +213,20 @@ class IntegrationManager {
 	 * Core sources resolve directly; everything else is resolved and
 	 * formatted by the shared SendContext — one build for the whole
 	 * banner, so a mapping never pays the extraction cost per field.
+	 * A caller mid-render (e.g. resolving params and the recovery link
+	 * for one banner) passes its already-built context so the pair costs
+	 * one build, not two — the context itself is still never memoized
+	 * across renders (batch senders must not leak recipients).
 	 * Third-party plugins fill their custom source values (or override
 	 * resolved ones) through the `ogdynamic_email_banner_resolved_sources`
 	 * filter; non-string values from the filter are dropped.
 	 *
-	 * @param string[] $keys Catalog source keys.
+	 * @param string[]         $keys    Catalog source keys.
+	 * @param SendContext|null $context Already-built send context, or null to build one.
 	 * @return array<string, string> Resolved values keyed by source key.
 	 */
-	public static function resolve_sources( array $keys ): array {
-		$context  = self::context();
+	public static function resolve_sources( array $keys, ?SendContext $context = null ): array {
+		$context  = $context ?? self::context();
 		$resolved = array();
 
 		foreach ( $keys as $key ) {

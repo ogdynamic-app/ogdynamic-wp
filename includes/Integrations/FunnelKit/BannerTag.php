@@ -9,6 +9,7 @@ namespace OGDynamic\Integrations\FunnelKit;
 
 use OGDynamic\CartBanners;
 use OGDynamic\Integrations\FunnelKitIntegration;
+use OGDynamic\Integrations\IntegrationManager;
 
 /**
  * Class BannerTag
@@ -115,16 +116,22 @@ class BannerTag extends \BWFAN_Merge_Tag {
 				$this->banner,
 				array(),
 				array(
-					'link' => CartBanners::LINK_NONE,
-					'alt'  => $this->tag_description,
+					'link'          => CartBanners::LINK_NONE,
+					'alt'           => $this->tag_description,
+					'margin_top'    => (int) ( $this->banner['margin_top'] ?? 0 ),
+					'margin_bottom' => (int) ( $this->banner['margin_bottom'] ?? 0 ),
 				)
 			);
 
 			return (string) $this->parse_shortcode_output( $markup, $atts );
 		}
 
-		$params = CartBanners::resolve_params( $this->banner );
-		$params = CartBanners::apply_attr_overrides( $params, $atts );
+		// One context build serves both the params and the recovery link
+		// (batch sends render several recipients per process, so it is
+		// never memoized further).
+		$context = IntegrationManager::context();
+		$params  = CartBanners::resolve_params( $this->banner, $context );
+		$params  = CartBanners::apply_attr_overrides( $params, $atts );
 
 		$link = isset( $atts['link'] ) ? (string) $atts['link'] : '';
 		if ( '' === $link ) {
@@ -141,9 +148,12 @@ class BannerTag extends \BWFAN_Merge_Tag {
 			$this->banner,
 			$params,
 			array(
-				'link'  => $link,
-				'alt'   => isset( $atts['alt'] ) && '' !== $atts['alt'] ? sanitize_text_field( (string) $atts['alt'] ) : $this->tag_description,
-				'width' => isset( $atts['width'] ) ? absint( $atts['width'] ) : 0,
+				'link'          => $link,
+				'alt'           => isset( $atts['alt'] ) && '' !== $atts['alt'] ? sanitize_text_field( (string) $atts['alt'] ) : $this->tag_description,
+				'width'         => isset( $atts['width'] ) ? absint( $atts['width'] ) : 0,
+				'recovery_url'  => $context->recovery_url(),
+				'margin_top'    => (int) ( $this->banner['margin_top'] ?? 0 ),
+				'margin_bottom' => (int) ( $this->banner['margin_bottom'] ?? 0 ),
 			)
 		);
 

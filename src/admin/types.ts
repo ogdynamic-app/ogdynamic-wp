@@ -77,6 +77,12 @@ export type CartBanner = {
   /** `recovery`, `none`, or a URL. */
   link: string;
   display_width: number;
+  /** Spacing above the image in emails (px, 0–200). */
+  margin_top?: number;
+  /** Spacing below the image in emails (px, 0–200). */
+  margin_bottom?: number;
+  /** Corner rounding in px (0–40; 0 = sharp corners). */
+  corner_radius?: number;
   map: CartBannerMapEntry[];
   /** CartBounty email assignment, or null when the banner is unused there. */
   cartbounty?: CartBountyAssignment | null;
@@ -104,6 +110,15 @@ export type CartBountyPlacement = {
   value: string;
   label: string;
 };
+
+/** Integration slugs — single source for the plain-text ids, mirroring the PHP integrations' ::slug() values. */
+export const INTEGRATION_SLUG_FUNNELKIT = "funnelkit";
+export const INTEGRATION_SLUG_CARTBOUNTY = "cartbounty";
+
+/** The integrations a "Use in …" dialog can target. */
+export type IntegrationMode =
+  | typeof INTEGRATION_SLUG_FUNNELKIT
+  | typeof INTEGRATION_SLUG_CARTBOUNTY;
 
 export type IntegrationStatus = {
   slug: string;

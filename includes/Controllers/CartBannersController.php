@@ -206,12 +206,26 @@ class CartBannersController {
 			return $link;
 		}
 
-		$display_width = absint( $request->get_param( 'display_width' ) );
-		$display_width = 0 === $display_width ? CartBanners::DEFAULT_DISPLAY_WIDTH : $display_width;
+			$display_width = absint( $request->get_param( 'display_width' ) );
+			$display_width = 0 === $display_width ? CartBanners::DEFAULT_DISPLAY_WIDTH : $display_width;
 
-		$cartbounty = $request->has_param( 'cartbounty' )
-			? self::sanitize_assignment( $request->get_param( 'cartbounty' ) )
-			: ( $existing['cartbounty'] ?? null );
+			// Per-banner email spacing; a PUT without the keys (e.g. the
+			// CartBounty dialog's) keeps the saved values.
+			$margin_top = $request->has_param( 'margin_top' )
+				? max( 0, min( 200, absint( $request->get_param( 'margin_top' ) ) ) )
+				: (int) ( $existing['margin_top'] ?? 0 );
+
+			$margin_bottom = $request->has_param( 'margin_bottom' )
+				? max( 0, min( 200, absint( $request->get_param( 'margin_bottom' ) ) ) )
+				: (int) ( $existing['margin_bottom'] ?? 0 );
+
+			$corner_radius = $request->has_param( 'corner_radius' )
+				? max( 0, min( 40, absint( $request->get_param( 'corner_radius' ) ) ) )
+				: (int) ( $existing['corner_radius'] ?? 0 );
+
+			$cartbounty = $request->has_param( 'cartbounty' )
+				? self::sanitize_assignment( $request->get_param( 'cartbounty' ) )
+				: ( $existing['cartbounty'] ?? null );
 
 		// The banner keeps a snapshot of the canvas dims so merge tags can
 		// size the email image without a SaaS call at send time.
@@ -224,6 +238,9 @@ class CartBannersController {
 			'height'        => absint( $request->get_param( 'height' ) ),
 			'link'          => $link,
 			'display_width' => max( 100, min( 1200, $display_width ) ),
+			'margin_top'    => $margin_top,
+			'margin_bottom' => $margin_bottom,
+			'corner_radius' => $corner_radius,
 			'map'           => $map,
 			'cartbounty'    => $cartbounty,
 		);
@@ -231,6 +248,9 @@ class CartBannersController {
 
 	/**
 	 * Sanitizes the banner's CartBounty assignment.
+	 *
+	 * Margin keys are ignored (and dropped) — spacing is a global email
+	 * setting, not part of the assignment.
 	 *
 	 * @param mixed $value Raw assignment ({email, placement}) or null.
 	 * @return array|null Assignment, or null when cleared/invalid.
@@ -294,6 +314,24 @@ class CartBannersController {
 				'type'     => 'integer',
 				'minimum'  => 100,
 				'maximum'  => 1200,
+			),
+			'margin_top'    => array(
+				'required' => false,
+				'type'     => 'integer',
+				'minimum'  => 0,
+				'maximum'  => 200,
+			),
+			'margin_bottom' => array(
+				'required' => false,
+				'type'     => 'integer',
+				'minimum'  => 0,
+				'maximum'  => 200,
+			),
+			'corner_radius' => array(
+				'required' => false,
+				'type'     => 'integer',
+				'minimum'  => 0,
+				'maximum'  => 40,
 			),
 			'map'           => array(
 				'required'          => true,
@@ -430,8 +468,12 @@ class CartBannersController {
 	protected static function sanitize_link( $value ) {
 		$value = is_string( $value ) ? trim( $value ) : '';
 
-		if ( '' === $value || CartBanners::LINK_RECOVERY === $value || CartBanners::LINK_NONE === $value ) {
+		if ( '' === $value ) {
 			return CartBanners::LINK_RECOVERY;
+		}
+
+		if ( CartBanners::LINK_RECOVERY === $value || CartBanners::LINK_NONE === $value ) {
+			return $value;
 		}
 
 		$url = esc_url_raw( $value );

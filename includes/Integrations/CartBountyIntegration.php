@@ -248,10 +248,17 @@ class CartBountyIntegration implements Integration {
 			$banner = $assignment['banner'];
 
 			if ( ! empty( $banner['id'] ) ) {
-				$params = CartBanners::resolve_params( $banner );
-				$args   = array(
-					'link' => (string) ( $banner['link'] ?? CartBanners::LINK_RECOVERY ),
-					'alt'  => (string) $banner['name'],
+				// One context build serves both the params and the
+				// recovery link; spacing comes from the banner's own
+				// email settings.
+				$context = IntegrationManager::context();
+				$params  = CartBanners::resolve_params( $banner, $context );
+				$args    = array(
+					'link'          => (string) ( $banner['link'] ?? CartBanners::LINK_RECOVERY ),
+					'alt'           => (string) $banner['name'],
+					'recovery_url'  => $context->recovery_url(),
+					'margin_top'    => (int) ( $banner['margin_top'] ?? 0 ),
+					'margin_bottom' => (int) ( $banner['margin_bottom'] ?? 0 ),
 				);
 
 				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- image_markup() escapes its URL/alt/link attributes.

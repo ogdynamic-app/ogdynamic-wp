@@ -13,10 +13,16 @@ import type {
   CartBountyEmail,
   CartBountyPlacement,
   CartBanner,
+  IntegrationMode,
   IntegrationStatus,
 } from "../types";
+import { INTEGRATION_SLUG_FUNNELKIT } from "../types";
 import { useOgdApi } from "../composables/useOgdApi";
+import AppButton from "./AppButton.vue";
 import CopyButton from "./CopyButton.vue";
+// Emitted as real asset files (assetsInlineLimit: 0), not data URIs.
+import funnelKitMark from "../assets/icons/funnelkit-mark.png";
+import cartBountyMark from "../assets/icons/cartbounty-mark.svg";
 
 /**
  * Per-banner "how to use this banner" dialog. Two modes:
@@ -25,7 +31,7 @@ import CopyButton from "./CopyButton.vue";
  */
 const props = defineProps<{
   banner: CartBanner;
-  mode: "funnelkit" | "cartbounty";
+  mode: IntegrationMode;
   status?: IntegrationStatus;
 }>();
 
@@ -113,7 +119,8 @@ const placementName = computed(
 
 const assignmentChanged = computed(
   () =>
-    emailId.value !== savedEmail.value || placement.value !== savedPlacement.value,
+    emailId.value !== savedEmail.value ||
+    placement.value !== savedPlacement.value,
 );
 
 const assignmentNote = computed(() => {
@@ -173,10 +180,16 @@ async function saveAssignment() {
         class="ogd:fixed ogd:top-1/2 ogd:left-1/2 ogd:z-99995 ogd:max-h-[85vh] ogd:w-full ogd:max-w-lg ogd:-translate-x-1/2 ogd:-translate-y-1/2 ogd:overflow-y-auto ogd:rounded-[20px] ogd:border! ogd:border-gray-100! ogd:bg-white ogd:p-6 ogd:shadow-xl ogd:data-[state=open]:animate-dialog-in ogd:data-[state=closed]:animate-dialog-out focus:ogd:outline-none"
       >
         <!-- FunnelKit mode: banner-specific merge tag + steps. -->
-        <template v-if="mode === 'funnelkit'">
+        <template v-if="mode === INTEGRATION_SLUG_FUNNELKIT">
           <DialogTitle
-            class="ogd:m-0 ogd:font-display ogd:text-lg ogd:font-bold ogd:text-gray-900"
+            class="ogd:m-0 ogd:flex ogd:items-center ogd:gap-3 ogd:font-display ogd:text-lg ogd:font-bold ogd:text-gray-900"
           >
+            <img
+              :src="funnelKitMark"
+              alt=""
+              class="ogd:size-10"
+              aria-hidden="true"
+            />
             Use in FunnelKit Automations
           </DialogTitle>
           <DialogDescription
@@ -234,8 +247,14 @@ async function saveAssignment() {
         <!-- CartBounty mode: email + placement assignment. -->
         <template v-else>
           <DialogTitle
-            class="ogd:m-0 ogd:font-display ogd:text-lg ogd:font-bold ogd:text-gray-900"
+            class="ogd:m-0 ogd:flex ogd:items-center ogd:gap-3 ogd:font-display ogd:text-lg ogd:font-bold ogd:text-gray-900"
           >
+            <img
+              :src="cartBountyMark"
+              alt=""
+              class="ogd:size-10"
+              aria-hidden="true"
+            />
             Use in CartBounty
           </DialogTitle>
           <DialogDescription
@@ -307,19 +326,15 @@ async function saveAssignment() {
             </div>
 
             <div class="ogd:mt-5 ogd:flex ogd:justify-end ogd:gap-2.5">
-              <DialogClose
-                class="ogd:inline-flex ogd:cursor-pointer ogd:items-center ogd:rounded-full ogd:border ogd:border-gray-200 ogd:bg-white ogd:px-4 ogd:py-2 ogd:text-[12.5px] ogd:font-semibold ogd:text-gray-700 ogd:transition ogd:hover:border-gray-300"
-              >
-                Cancel
+              <DialogClose as-child>
+                <AppButton variant="secondary"> Cancel </AppButton>
               </DialogClose>
-              <button
-                class="ogd:inline-flex ogd:cursor-pointer ogd:items-center ogd:justify-center ogd:rounded-full ogd:border ogd:border-transparent ogd:bg-primary ogd:px-4 ogd:py-2 ogd:text-[12.5px] ogd:font-semibold ogd:text-white! ogd:transition ogd:hover:border-primary-hover ogd:hover:bg-primary-hover ogd:disabled:cursor-not-allowed ogd:disabled:opacity-50"
-                type="button"
+              <AppButton
                 :disabled="!assignmentChanged || api.loading.value"
                 @click="saveAssignment"
               >
                 {{ api.loading.value ? "Saving…" : "Save assignment" }}
-              </button>
+              </AppButton>
             </div>
           </template>
 

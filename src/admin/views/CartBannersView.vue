@@ -4,10 +4,19 @@ import { RouterLink } from "vue-router";
 import type {
   CartBanner,
   CartBannersPayload,
+  IntegrationMode,
   IntegrationStatus,
+} from "../types";
+import {
+  INTEGRATION_SLUG_CARTBOUNTY,
+  INTEGRATION_SLUG_FUNNELKIT,
 } from "../types";
 import { useOgdApi } from "../composables/useOgdApi";
 import UseBannerDialog from "../components/UseBannerDialog.vue";
+import AppButton from "../components/AppButton.vue";
+// Emitted as real asset files (assetsInlineLimit: 0), not data URIs.
+import funnelKitMark from "../assets/icons/funnelkit-mark.png";
+import cartBountyMark from "../assets/icons/cartbounty-mark.svg";
 
 const api = useOgdApi();
 const deleteApi = useOgdApi();
@@ -19,26 +28,32 @@ const integrations = shallowRef<IntegrationStatus[]>([]);
 const confirmingDelete = ref("");
 
 const funnelKit = computed<IntegrationStatus | undefined>(() =>
-  integrations.value.find((item) => item.slug === "funnelkit"),
+  integrations.value.find(
+    (item) => item.slug === INTEGRATION_SLUG_FUNNELKIT,
+  ),
 );
 
 const cartBounty = computed<IntegrationStatus | undefined>(() =>
-  integrations.value.find((item) => item.slug === "cartbounty"),
+  integrations.value.find(
+    (item) => item.slug === INTEGRATION_SLUG_CARTBOUNTY,
+  ),
 );
 
 // Per-banner usage dialog ("Use in FunnelKit" / "Use in CartBounty").
 const dialogOpen = ref(false);
-const dialogMode = ref<"funnelkit" | "cartbounty">("funnelkit");
+const dialogMode = ref<IntegrationMode>(INTEGRATION_SLUG_FUNNELKIT);
 const dialogBanner = ref<CartBanner | undefined>();
 
-function openDialog(banner: CartBanner, mode: "funnelkit" | "cartbounty") {
+function openDialog(banner: CartBanner, mode: IntegrationMode) {
   dialogMode.value = mode;
   dialogBanner.value = banner;
   dialogOpen.value = true;
 }
 
-function dialogStatus(mode: "funnelkit" | "cartbounty") {
-  return mode === "funnelkit" ? funnelKit.value : cartBounty.value;
+function dialogStatus(mode: IntegrationMode) {
+  return mode === INTEGRATION_SLUG_FUNNELKIT
+    ? funnelKit.value
+    : cartBounty.value;
 }
 
 async function onDialogSaved() {
@@ -53,28 +68,24 @@ function linkLabel(banner: CartBanner): string {
   return banner.link === "none" ? "No link" : "Custom link";
 }
 
-/** Active integrations a banner is wired into, shown as card badges. */
+/** Integrations a banner is concretely wired into, shown as card badges. */
 type BannerIntegration = {
   label: string;
   detail: string;
-  tone: "neutral" | "primary";
 };
 
 function bannerIntegrations(banner: CartBanner): BannerIntegration[] {
   const list: BannerIntegration[] = [];
 
-  // FunnelKit active = this banner's merge tag is registered and pickable.
-  if (funnelKit.value?.available) {
-    list.push({
-      label: "FunnelKit",
-      detail: "",
-      tone: "neutral",
-    });
-  }
-
+  // Only the CartBounty assignment is per-banner and badge-worthy; FunnelKit
+  // registers a merge tag for every banner automatically, so a FunnelKit
+  // badge would carry no information. The badge only shows while CartBounty
+  // is active — a deactivated plugin renders nothing, so a badge would
+  // advertise an integration that is not in use (the saved assignment is
+  // preserved and the badge returns when the plugin comes back).
   const assignment = banner.cartbounty;
 
-  if (assignment && cartBounty.value) {
+  if (assignment && cartBounty.value?.available) {
     const email = cartBounty.value.emails?.find(
       (item) => item.id === assignment.email,
     );
@@ -87,7 +98,6 @@ function bannerIntegrations(banner: CartBanner): BannerIntegration[] {
       detail: [email?.name, placement?.label.toLowerCase()]
         .filter(Boolean)
         .join(" · "),
-      tone: "primary",
     });
   }
 
@@ -149,10 +159,7 @@ onMounted(() => {
           recipient sees their own cart, name and products.
         </p>
       </div>
-      <RouterLink
-        class="ogd:inline-flex ogd:cursor-pointer ogd:items-center ogd:justify-center ogd:gap-2 ogd:rounded-full ogd:border ogd:border-transparent ogd:bg-primary ogd:px-4.5 ogd:py-2.5 ogd:text-[13px] ogd:font-semibold ogd:text-white! ogd:no-underline ogd:transition ogd:hover:border-primary-hover ogd:hover:bg-primary-hover"
-        to="/cart-banners/new"
-      >
+      <AppButton size="lg" to="/cart-banners/new">
         <svg
           class="ogd:size-4"
           viewBox="0 0 24 24"
@@ -167,7 +174,7 @@ onMounted(() => {
           <path d="M12 5v14" />
         </svg>
         Create Banner
-      </RouterLink>
+      </AppButton>
     </div>
 
     <!-- List skeleton while the banners load. -->
@@ -227,12 +234,9 @@ onMounted(() => {
           Pick a canvas, map its fields to cart and customer data, and drop
           the banner into your abandoned cart emails.
         </p>
-        <RouterLink
-          class="ogd:inline-flex ogd:cursor-pointer ogd:items-center ogd:justify-center ogd:gap-2 ogd:rounded-full ogd:border ogd:border-transparent ogd:bg-primary ogd:px-4.5 ogd:py-2.5 ogd:text-[13px] ogd:font-semibold ogd:text-white! ogd:no-underline ogd:transition ogd:hover:border-primary-hover ogd:hover:bg-primary-hover"
-          to="/cart-banners/new"
-        >
+        <AppButton size="lg" to="/cart-banners/new">
           Create your first banner
-        </RouterLink>
+        </AppButton>
       </div>
 
       <!-- Banner cards. -->
@@ -248,80 +252,76 @@ onMounted(() => {
             <div class="ogd:min-w-0">
               <div class="ogd:flex ogd:flex-wrap ogd:items-center ogd:gap-2">
                 <h2
-                  class="ogd:m-0 ogd:truncate ogd:font-display ogd:text-lg ogd:font-bold ogd:tracking-[-0.02em] ogd:text-gray-900"
+                  class="ogd:!m-0 ogd:truncate ogd:font-display ogd:text-lg ogd:font-bold ogd:tracking-[-0.02em] ogd:text-gray-900"
                 >
                   {{ banner.name }}
                 </h2>
                 <span
                   v-for="badge in bannerIntegrations(banner)"
                   :key="badge.label"
-                  class="ogd:inline-flex ogd:items-center ogd:rounded-full ogd:px-2 ogd:py-px ogd:text-[10.5px] ogd:font-semibold"
-                  :class="
-                    badge.tone === 'primary'
-                      ? 'ogd:bg-primary-soft ogd:text-primary'
-                      : 'ogd:bg-gray-100 ogd:text-gray-600'
-                  "
-                  :title="
-                    badge.label === 'FunnelKit'
-                      ? 'Merge tag registered — pickable in FunnelKit emails'
-                      : 'Assigned to this CartBounty recovery email'
-                  "
+                  class="ogd:inline-flex ogd:items-center ogd:rounded-full ogd:bg-primary-soft ogd:px-2 ogd:py-px ogd:text-[10.5px] ogd:font-semibold ogd:text-primary"
+                  title="Assigned to this CartBounty recovery email"
                 >
                   {{ badge.label }}{{ badge.detail ? " · " + badge.detail : "" }}
                 </span>
               </div>
-              <p class="ogd:mt-1 ogd:mb-0 ogd:text-sm ogd:text-gray-500">
+              <p class="ogd:text-sm ogd:text-gray-500">
                 {{ banner.canvas_name || "Canvas" }}
                 <span v-if="banner.width && banner.height">
                   · {{ banner.width }}×{{ banner.height }}</span
                 >
                 · {{ linkLabel(banner) }}
               </p>
+              <div class="ogd:flex ogd:gap-x-3">
+                <AppButton
+                  v-if="funnelKit?.available"
+                  variant="secondary"
+                  @click="openDialog(banner, INTEGRATION_SLUG_FUNNELKIT)"
+                >
+                  <img
+                    :src="funnelKitMark"
+                    alt=""
+                    class="ogd:size-5"
+                    aria-hidden="true"
+                  />
+                  Use in FunnelKit
+                </AppButton>
+                <AppButton
+                  v-if="cartBounty?.available"
+                  variant="secondary"
+                  @click="openDialog(banner, INTEGRATION_SLUG_CARTBOUNTY)"
+                >
+                  <img
+                    :src="cartBountyMark"
+                    alt=""
+                    class="ogd:size-5"
+                    aria-hidden="true"
+                  />
+                  Use in CartBounty
+                  <svg
+                    v-if="banner.cartbounty"
+                    class="ogd:size-3.5 ogd:text-success-text"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M20 6 9 17l-5-5" />
+                  </svg>
+                </AppButton>
+              </div>
             </div>
             <div class="ogd:flex ogd:flex-wrap ogd:gap-2.5">
-              <button
-                v-if="funnelKit?.available"
-                class="ogd:inline-flex ogd:cursor-pointer ogd:items-center ogd:rounded-full ogd:border ogd:border-gray-200 ogd:bg-white ogd:px-3.5 ogd:py-2 ogd:text-[12.5px] ogd:font-semibold ogd:text-gray-700 ogd:transition ogd:hover:border-primary ogd:hover:text-primary"
-                type="button"
-                @click="openDialog(banner, 'funnelkit')"
-              >
-                Use in FunnelKit
-              </button>
-              <button
-                v-if="cartBounty?.available"
-                class="ogd:inline-flex ogd:cursor-pointer ogd:items-center ogd:gap-1.5 ogd:rounded-full ogd:border ogd:border-gray-200 ogd:bg-white ogd:px-3.5 ogd:py-2 ogd:text-[12.5px] ogd:font-semibold ogd:text-gray-700 ogd:transition ogd:hover:border-primary ogd:hover:text-primary"
-                type="button"
-                @click="openDialog(banner, 'cartbounty')"
-              >
-                <svg
-                  v-if="banner.cartbounty"
-                  class="ogd:size-3.5 ogd:text-success-text"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2.5"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  aria-hidden="true"
-                >
-                  <path d="M20 6 9 17l-5-5" />
-                </svg>
-                Use in CartBounty
-              </button>
-              <RouterLink
-                class="ogd:inline-flex ogd:items-center ogd:rounded-full ogd:border ogd:border-gray-200 ogd:bg-white ogd:px-3.5 ogd:py-2 ogd:text-[12.5px] ogd:font-semibold ogd:text-gray-700 ogd:no-underline ogd:transition ogd:hover:border-primary ogd:hover:text-primary"
-                :to="`/cart-banners/${banner.id}`"
-              >
+              <AppButton variant="secondary" :to="`/cart-banners/${banner.id}`">
                 Edit
-              </RouterLink>
-              <button
-                class="ogd:inline-flex ogd:cursor-pointer ogd:items-center ogd:rounded-full ogd:border ogd:px-3.5 ogd:py-2 ogd:text-[12.5px] ogd:font-semibold ogd:transition ogd:disabled:cursor-not-allowed ogd:disabled:opacity-50"
-                :class="
-                  confirmingDelete === banner.id
-                    ? 'ogd:border-destructive ogd:bg-destructive ogd:text-white!'
-                    : 'ogd:border-gray-200 ogd:bg-white ogd:text-gray-700 ogd:hover:border-destructive ogd:hover:text-destructive'
+              </AppButton>
+              <AppButton
+                :variant="
+                  confirmingDelete === banner.id ? 'danger-solid' : 'danger'
                 "
-                type="button"
                 :disabled="deleteApi.loading.value"
                 @click="remove(banner)"
               >
@@ -332,7 +332,7 @@ onMounted(() => {
                       ? "Confirm delete"
                       : "Delete"
                 }}
-              </button>
+              </AppButton>
             </div>
           </div>
         </article>

@@ -482,6 +482,12 @@ class BlockController {
 	/**
 	 * Finds an existing upload for a canvas + params hash.
 	 *
+	 * Resolved through the attachment's deterministic slug (post_name,
+	 * indexed on wp_posts) — a wp_postmeta.meta_value scan would have no
+	 * usable index and degrade as generated images pile up. The stored
+	 * meta hash stays the authority: a slug whose meta was stripped must
+	 * re-upload, not reuse.
+	 *
 	 * @param string $hash The canvas + params hash.
 	 * @return int Attachment id or 0 when none exists.
 	 */
@@ -490,24 +496,37 @@ class BlockController {
 			array(
 				'post_type'      => 'attachment',
 				'post_status'    => 'inherit',
+				'name'           => self::attachment_slug( $hash ),
 				'posts_per_page' => 1,
 				'fields'         => 'ids',
 				'no_found_rows'  => true,
-				// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
-				'meta_query'     => array(
-					array(
-						'key'   => self::META_HASH,
-						'value' => $hash,
-					),
-				),
 			)
 		);
 
-		if ( empty( $ids ) || ! wp_get_attachment_url( (int) $ids[0] ) ) {
+		if ( empty( $ids ) ) {
 			return 0;
 		}
 
-		return (int) $ids[0];
+		$attachment_id = (int) $ids[0];
+
+		if ( get_post_meta( $attachment_id, self::META_HASH, true ) !== $hash || ! wp_get_attachment_url( $attachment_id ) ) {
+			return 0;
+		}
+
+		return $attachment_id;
+	}
+
+	/**
+	 * Deterministic attachment slug for a canvas + params hash.
+	 *
+	 * Set on upload and queried for reuse; md5 output is 32 hex chars, so
+	 * the slug always fits and never collides between different renders.
+	 *
+	 * @param string $hash The canvas + params hash.
+	 * @return string Attachment slug.
+	 */
+	private static function attachment_slug( string $hash ): string {
+		return 'ogd-' . $hash;
 	}
 
 	/**
@@ -547,7 +566,15 @@ class BlockController {
 				'tmp_name' => $tmp,
 			),
 			$post_id,
-			$title
+			$title,
+			array(
+				// Deterministic slug: find_attachment() resolves reuse
+				// through the indexed post_name instead of a postmeta
+				// meta_value scan. wp_unique_post_slug() may suffix it on
+				// a collision — the lookup then misses and the image
+				// re-uploads, same as a first generate.
+				'post_name' => self::attachment_slug( $hash ),
+			)
 		);
 
 		if ( is_wp_error( $attachment ) ) {

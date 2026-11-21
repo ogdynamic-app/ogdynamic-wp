@@ -17,6 +17,7 @@ import FormField from "../components/forms/FormField.vue";
 import TextInput from "../components/forms/TextInput.vue";
 import SelectInput from "../components/forms/SelectInput.vue";
 import SearchableSelectInput from "../components/forms/SearchableSelectInput.vue";
+import AppButton from "../components/AppButton.vue";
 
 type FieldOption = {
   key: string;
@@ -69,6 +70,9 @@ const formPayload = reactive<{
   link_mode: string;
   link_url: string;
   display_width: number;
+  margin_top: string;
+  margin_bottom: string;
+  corner_radius: string;
   map: Array<{ attr_key: string; key: string; value?: string }>;
 }>({
   name: "",
@@ -79,8 +83,29 @@ const formPayload = reactive<{
   link_mode: "recovery",
   link_url: "",
   display_width: 600,
+  margin_top: "0",
+  margin_bottom: "0",
+  corner_radius: "0",
   map: [],
 });
+
+function clampMargin(value: string): number {
+  return Math.max(0, Math.min(200, Number.parseInt(value, 10) || 0));
+}
+
+function clampRadius(value: string): number {
+  return Math.max(0, Math.min(40, Number.parseInt(value, 10) || 0));
+}
+
+/** Preview mirrors the banner's email look: capped width + corner style. */
+const previewStyle = computed<Record<string, string>>(() => ({
+  display: "block",
+  width: "100%",
+  maxWidth: `${Math.max(100, Math.min(1200, Number(formPayload.display_width) || 600))}px`,
+  height: "auto",
+  borderRadius: `${clampRadius(formPayload.corner_radius)}px`,
+  margin: "0 auto",
+}));
 
 let canvasRequestSeq = 0;
 
@@ -211,6 +236,9 @@ async function loadBanner() {
   formPayload.width = banner.width;
   formPayload.height = banner.height;
   formPayload.display_width = banner.display_width || 600;
+  formPayload.margin_top = String(banner.margin_top ?? 0);
+  formPayload.margin_bottom = String(banner.margin_bottom ?? 0);
+  formPayload.corner_radius = String(banner.corner_radius ?? 0);
   formPayload.map = (banner.map ?? []).map((entry) => ({ ...entry }));
 
   if (banner.link === "recovery" || banner.link === "none") {
@@ -403,6 +431,9 @@ async function save() {
     height: formPayload.height,
     link,
     display_width: Number(formPayload.display_width) || 600,
+    margin_top: clampMargin(formPayload.margin_top),
+    margin_bottom: clampMargin(formPayload.margin_bottom),
+    corner_radius: clampRadius(formPayload.corner_radius),
     map: formPayload.map.filter((entry) => entry.key !== ""),
   };
 
@@ -665,8 +696,7 @@ onMounted(async () => {
             Email settings
           </h2>
           <p class="ogd:mt-2! ogd:mb-5 ogd:text-sm ogd:text-gray-500">
-            Where the banner click takes the recipient, and how wide it
-            renders.
+            Where the banner click takes the recipient.
           </p>
 
           <FormField label="Banner link" for-id="ogd-banner-link">
@@ -688,18 +718,6 @@ onMounted(async () => {
               v-model="formPayload.link_url"
               type="url"
               placeholder="https://example.com/offer"
-            />
-          </FormField>
-
-          <FormField
-            label="Rendered width (px)"
-            for-id="ogd-banner-width"
-            hint="Display width inside the email — 600px fits every client."
-          >
-            <TextInput
-              id="ogd-banner-width"
-              v-model="formPayload.display_width"
-              type="number"
             />
           </FormField>
         </div>
@@ -727,21 +745,81 @@ onMounted(async () => {
               v-if="previewUrl"
               :src="previewUrl"
               :alt="`${formPayload.name || 'Banner'} preview`"
-              class="ogd:block ogd:w-full ogd:rounded-[14px] ogd:border! ogd:border-gray-100!"
+              class="ogd:border! ogd:border-gray-100!"
+              :style="previewStyle"
             />
           </div>
+        </div>
+
+        <!-- Banner style — mirrors on the preview above. -->
+        <div
+          v-if="formPayload.canvas_id"
+          class="ogd:rounded-[20px] ogd:border ogd:border-gray-100 ogd:bg-white ogd:p-6"
+        >
+          <h2
+            class="ogd:m-0! ogd:font-display ogd:text-base ogd:font-bold ogd:text-gray-900"
+          >
+            Banner style
+          </h2>
+          <p class="ogd:mt-2! ogd:mb-5 ogd:text-sm ogd:text-gray-500">
+            How the banner looks inside your emails — changes show in the
+            preview above.
+          </p>
+
+          <FormField
+            label="Corner radius (px)"
+            for-id="ogd-banner-corner-radius"
+            hint="Rounds the image corners; 0 keeps them sharp. Outlook always renders banners sharp."
+          >
+            <TextInput
+              id="ogd-banner-corner-radius"
+              v-model="formPayload.corner_radius"
+              type="number"
+            />
+          </FormField>
+
+          <FormField
+            label="Rendered width (px)"
+            for-id="ogd-banner-width"
+            hint="Display width inside the email — 600px fits every client."
+          >
+            <TextInput
+              id="ogd-banner-width"
+              v-model="formPayload.display_width"
+              type="number"
+            />
+          </FormField>
+
+          <FormField
+            label="Spacing above (px)"
+            for-id="ogd-banner-margin-top"
+            hint="Empty space between the banner image and the content above it."
+          >
+            <TextInput
+              id="ogd-banner-margin-top"
+              v-model="formPayload.margin_top"
+              type="number"
+            />
+          </FormField>
+
+          <FormField
+            label="Spacing below (px)"
+            for-id="ogd-banner-margin-bottom"
+            hint="Empty space between the banner image and the content below it."
+          >
+            <TextInput
+              id="ogd-banner-margin-bottom"
+              v-model="formPayload.margin_bottom"
+              type="number"
+            />
+          </FormField>
         </div>
 
         <div
           class="ogd:rounded-[20px] ogd:border ogd:border-gray-100 ogd:bg-white ogd:p-6"
         >
           <div class="ogd:flex ogd:flex-wrap ogd:gap-2.5">
-            <button
-              class="ogd:inline-flex ogd:cursor-pointer ogd:items-center ogd:justify-center ogd:gap-2 ogd:rounded-full ogd:border ogd:border-transparent ogd:bg-primary ogd:px-4.5 ogd:py-2.5 ogd:text-[13px] ogd:font-semibold ogd:text-white! ogd:transition ogd:hover:border-primary-hover ogd:hover:bg-primary-hover ogd:disabled:cursor-not-allowed ogd:disabled:opacity-50"
-              type="button"
-              :disabled="!canSave"
-              @click="save"
-            >
+            <AppButton size="lg" :disabled="!canSave" @click="save">
               <svg
                 class="ogd:size-4"
                 viewBox="0 0 24 24"
@@ -759,16 +837,11 @@ onMounted(async () => {
                 <polyline points="7 3 7 8 15 8" />
               </svg>
               {{ saveApi.loading.value ? "Saving…" : isNew ? "Create Banner" : "Update Banner" }}
-            </button>
-            <button
+            </AppButton>
+            <AppButton
               v-if="bannerExists"
-              class="ogd:inline-flex ogd:cursor-pointer ogd:items-center ogd:justify-center ogd:gap-2 ogd:rounded-full ogd:border ogd:px-4.5 ogd:py-2.5 ogd:text-[13px] ogd:font-semibold ogd:transition ogd:disabled:cursor-not-allowed ogd:disabled:opacity-50"
-              :class="
-                confirmingDelete
-                  ? 'ogd:border-destructive ogd:bg-destructive ogd:text-white!'
-                  : 'ogd:border-destructive/40 ogd:bg-white ogd:text-destructive! ogd:hover:border-destructive ogd:hover:bg-destructive ogd:hover:text-white!'
-              "
-              type="button"
+              size="lg"
+              :variant="confirmingDelete ? 'danger-solid' : 'danger'"
               :disabled="deleteApi.loading.value"
               @click="remove"
             >
@@ -779,7 +852,7 @@ onMounted(async () => {
                     ? "Confirm delete"
                     : "Delete Banner"
               }}
-            </button>
+            </AppButton>
           </div>
 
           <div

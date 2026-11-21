@@ -9,6 +9,7 @@ namespace OGDynamic;
 
 use OGDynamic\Integrations\CartBannerSources;
 use OGDynamic\Integrations\IntegrationManager;
+use OGDynamic\Integrations\SendContext;
 
 /**
  * Class CartBanners
@@ -90,8 +91,9 @@ class CartBanners {
 			return '';
 		}
 
-		$params = self::resolve_params( $banner );
-		$params = self::apply_attr_overrides( $params, $atts );
+		$context = IntegrationManager::context();
+		$params  = self::resolve_params( $banner, $context );
+		$params  = self::apply_attr_overrides( $params, $atts );
 
 		$link = isset( $atts['link'] ) ? (string) $atts['link'] : '';
 		if ( '' === $link ) {
@@ -99,9 +101,10 @@ class CartBanners {
 			$link = (string) ( $banner['link'] ?? self::LINK_RECOVERY );
 		}
 		$args = array(
-			'alt'   => isset( $atts['alt'] ) && '' !== $atts['alt'] ? sanitize_text_field( (string) $atts['alt'] ) : $banner['name'],
-			'link'  => self::LINK_RECOVERY === $link ? self::LINK_RECOVERY : esc_url_raw( $link ),
-			'width' => isset( $atts['width'] ) ? absint( $atts['width'] ) : 0,
+			'alt'          => isset( $atts['alt'] ) && '' !== $atts['alt'] ? sanitize_text_field( (string) $atts['alt'] ) : $banner['name'],
+			'link'         => self::LINK_RECOVERY === $link ? self::LINK_RECOVERY : esc_url_raw( $link ),
+			'width'        => isset( $atts['width'] ) ? absint( $atts['width'] ) : 0,
+			'recovery_url' => $context->recovery_url(),
 		);
 
 		return self::image_markup( $banner, $params, $args );
@@ -262,12 +265,15 @@ class CartBanners {
 	 *
 	 * Dynamic sources resolve through one batched IntegrationManager
 	 * dispatch (a single send-context build for the whole mapping, empty
-	 * outside an email send); custom values pass through as-is.
+	 * outside an email send); custom values pass through as-is. Callers
+	 * mid-render pass their already-built context so params and the
+	 * recovery link together cost one context build, not two.
 	 *
-	 * @param array $banner Banner payload.
+	 * @param array            $banner  Banner payload.
+	 * @param SendContext|null $context Already-built send context, or null to build one.
 	 * @return array Param values keyed by canvas field.
 	 */
-	public static function resolve_params( array $banner ): array {
+	public static function resolve_params( array $banner, ?SendContext $context = null ): array {
 		$map  = (array) ( $banner['map'] ?? array() );
 		$keys = array();
 
@@ -280,7 +286,7 @@ class CartBanners {
 			}
 		}
 
-		$resolved = IntegrationManager::resolve_sources( array_unique( $keys ) );
+		$resolved = IntegrationManager::resolve_sources( array_unique( $keys ), $context );
 
 		$params = array();
 
@@ -375,7 +381,7 @@ class CartBanners {
 	 *
 	 * @param array $banner Banner payload.
 	 * @param array $params Resolved param values keyed by canvas field.
-	 * @param array $args   Optional 'alt', 'link' (URL or recovery marker), 'width' overrides.
+	 * @param array $args   Optional 'alt', 'link' (URL or recovery marker), 'width', 'recovery_url' (recovery URL from the caller's already-built send context, so a mid-render caller never pays a second context build), 'margin_top'/'margin_bottom' (px spacing above/below the image, clamped 0-200; both zero keeps the compact centered margin), and 'corner_radius' (px, 0-40; zero falls back to the banner's saved corner style) overrides.
 	 * @return string The image (or linked image) HTML.
 	 */
 	public static function image_markup( array $banner, array $params, array $args = array() ): string {
@@ -398,18 +404,55 @@ class CartBanners {
 			$alt = (string) ( $banner['name'] ?? __( 'Banner', 'ogdynamic' ) );
 		}
 
+		// Email spacing: per-render margins, zero keeping the compact
+		// centered default.
+		$margin_top    = max( 0, min( 200, (int) ( $args['margin_top'] ?? 0 ) ) );
+		$margin_bottom = max( 0, min( 200, (int) ( $args['margin_bottom'] ?? 0 ) ) );
+
+		// Corner rounding is a style of the banner itself (like width), so
+		// the saved setting applies in every render; args may override.
+		// 0 keeps the markup free of a border-radius declaration — Outlook
+		// ignores it anyway (renders sharp), everything else rounds.
+		$corner_radius = max( 0, min( 40, (int) ( $args['corner_radius'] ?? 0 ) ) );
+
+		if ( $corner_radius <= 0 ) {
+			$corner_radius = max( 0, min( 40, (int) ( $banner['corner_radius'] ?? 0 ) ) );
+		}
+
+		// Declarative style: CSS property names, null drops the property —
+		// new styles are one entry, never format-string surgery.
+		$styles = array(
+			'width'           => '100%',
+			'max-width'       => $width . 'px',
+			'height'          => 'auto',
+			'display'         => 'block',
+			'margin-top'      => $margin_top . 'px',
+			'margin-right'    => 'auto',
+			'margin-bottom'   => $margin_bottom . 'px',
+			'margin-left'     => 'auto',
+			'border-radius'   => $corner_radius > 0 ? $corner_radius . 'px' : null,
+			'border'          => '0',
+			'outline'         => 'none',
+			'text-decoration' => 'none',
+		);
+
 		$img = sprintf(
-			'<img src="%s" alt="%s" width="%d" style="width:100%%;max-width:%dpx;height:auto;display:block;margin:0 auto;border:0;outline:none;text-decoration:none;" />',
+			'<img src="%s" alt="%s" width="%d" style="%s" />',
 			esc_url( $url ),
 			esc_attr( $alt ),
 			$width,
-			$width
+			esc_attr( self::style_attribute( $styles ) )
 		);
 
 		$link = trim( (string) ( $args['link'] ?? '' ) );
 
 		if ( self::LINK_RECOVERY === $link ) {
-			$link = self::recovery_url();
+			// A caller mid-render passes the recovery URL from its
+			// already-built send context; only callers without one pay
+			// a context build here.
+			$link = isset( $args['recovery_url'] ) && is_string( $args['recovery_url'] )
+				? trim( $args['recovery_url'] )
+				: self::recovery_url();
 		} elseif ( '' !== $link && ! wp_http_validate_url( $link ) ) {
 			$link = '';
 		}
@@ -485,6 +528,28 @@ class CartBanners {
 		ksort( $filtered );
 
 		return $filtered;
+	}
+
+	/**
+	 * Serializes a CSS property map into a style attribute value.
+	 *
+	 * Keys are CSS property names; null/empty values drop the property.
+	 *
+	 * @param array<string, string|null> $styles CSS property map.
+	 * @return string Style value, e.g. "width: 100%; margin: 0".
+	 */
+	protected static function style_attribute( array $styles ): string {
+		$parts = array();
+
+		foreach ( $styles as $property => $value ) {
+			if ( null === $value || '' === $value ) {
+				continue;
+			}
+
+			$parts[] = $property . ': ' . $value;
+		}
+
+		return implode( '; ', $parts );
 	}
 
 	/**
