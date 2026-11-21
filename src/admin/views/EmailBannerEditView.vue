@@ -472,7 +472,7 @@ onMounted(async () => {
       class="ogd:mb-5 ogd:inline-flex ogd:text-sm! ogd:font-semibold! ogd:text-primary! ogd:hover:text-primary-hover!"
       to="/email-banners"
     >
-      Back to email banners
+      Back to cart banners
     </RouterLink>
 
     <div
@@ -481,14 +481,15 @@ onMounted(async () => {
       <h1
         class="ogd:m-0 ogd:font-display ogd:text-3xl ogd:font-bold ogd:tracking-[-0.03em] ogd:text-gray-900"
       >
-        {{ isNew ? "Create Email Banner" : "Edit Email Banner" }}
+        {{ isNew ? "Create Cart Banner" : "Edit Cart Banner" }}
       </h1>
     </div>
     <p
       class="ogd:mt-2 ogd:mb-6 ogd:max-w-140 ogd:text-[15px] ogd:leading-relaxed ogd:text-gray-500"
     >
       Map an ogdynamic canvas to cart and customer data. The banner
-      personalizes itself for every recipient when the email is sent.
+      personalizes itself for every recipient when the recovery email is
+      sent.
     </p>
 
     <!-- Editor skeleton while the banner and canvas list load. -->

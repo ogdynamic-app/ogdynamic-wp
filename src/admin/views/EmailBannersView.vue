@@ -140,12 +140,12 @@ onMounted(() => {
         <h1
           class="ogd:m-0 ogd:font-display ogd:text-3xl ogd:font-bold ogd:tracking-[-0.03em] ogd:text-gray-900"
         >
-          Email Banners
+          Cart Recovery Banners
         </h1>
         <p
           class="ogd:mt-2 ogd:mb-0 ogd:max-w-140 ogd:text-[15px] ogd:leading-relaxed ogd:text-gray-500"
         >
-          Personalized banner images for your marketing emails — every
+          Personalized banner images for your abandoned cart emails — every
           recipient sees their own cart, name and products.
         </p>
       </div>
@@ -219,7 +219,7 @@ onMounted(() => {
         <h2
           class="ogd:mt-4 ogd:mb-1 ogd:font-display ogd:text-lg ogd:font-bold ogd:text-gray-900"
         >
-          No email banners yet
+          No cart banners yet
         </h2>
         <p
           class="ogd:mb-5 ogd:mt-0 ogd:text-center! ogd:text-sm ogd:leading-relaxed ogd:text-gray-500"
