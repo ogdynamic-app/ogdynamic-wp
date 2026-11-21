@@ -35,7 +35,8 @@ onMounted(loadAccount);
     <p
       class="ogd:mt-2 ogd:mb-6 ogd:max-w-140 ogd:text-[15px] ogd:leading-relaxed ogd:text-gray-500"
     >
-      Manage the API connection and Open Graph image templates for this site.
+      Manage the API connection, Open Graph image templates, and cart
+      recovery banners for this site.
     </p>
 
     <div class="ogd:grid ogd:grid-cols-1 ogd:gap-4.5">
