@@ -129,7 +129,7 @@ class CartBannersController {
 
 		if ( null === $existing ) {
 			return new \WP_Error(
-				'ogd_banner_not_found',
+				'ogd_cart_banner_not_found',
 				__( 'Cart banner not found.', 'ogdynamic' ),
 				array( 'status' => 404 )
 			);
@@ -162,7 +162,7 @@ class CartBannersController {
 
 		if ( ! $exists ) {
 			return new \WP_Error(
-				'ogd_banner_not_found',
+				'ogd_cart_banner_not_found',
 				__( 'Cart banner not found.', 'ogdynamic' ),
 				array( 'status' => 404 )
 			);

@@ -22,14 +22,14 @@ use OGDynamic\Integrations\IntegrationManager;
 class CartBanners {
 
 	/**
-	 * Option key prefix for per-banner options: `ogdy_banner_{id}`.
+	 * Option key prefix for per-banner options: `ogdy_cart_banner_{id}`.
 	 *
 	 * One option per banner (the Template::option_name() pattern) instead
 	 * of one blob: saves touch only their own row — no read-modify-write
 	 * of every banner — and merge-tag registration still lists them with
 	 * a single prefix query.
 	 */
-	public const OPTION_PREFIX = 'banner_';
+	public const OPTION_PREFIX = 'cart_banner_';
 
 	/**
 	 * Per-request banner cache (null = not loaded yet).
@@ -62,11 +62,11 @@ class CartBanners {
 	 * @return void
 	 */
 	public static function register_shortcode(): void {
-		add_shortcode( 'ogdynamic_banner', array( self::class, 'render_shortcode' ) );
+		add_shortcode( 'ogdynamic_cart_banner', array( self::class, 'render_shortcode' ) );
 	}
 
 	/**
-	 * Renders the [ogdynamic_banner] shortcode.
+	 * Renders the [ogdynamic_cart_banner] shortcode.
 	 *
 	 * Works anywhere WordPress shortcodes are processed. Without email
 	 * context only custom mapping values and shortcode attributes resolve;
@@ -74,7 +74,7 @@ class CartBanners {
 	 *
 	 * @param array|string $atts Shortcode attributes. Every attribute other
 	 *                           than the reserved ones overrides the matching
-	 *                           canvas field, e.g. [ogdynamic_banner id="…" name="Sarah"].
+	 *                           canvas field, e.g. [ogdynamic_cart_banner id="…" name="Sarah"].
 	 * @return string Banner image HTML, or an empty string for an unknown banner.
 	 */
 	public static function render_shortcode( $atts ): string {
@@ -309,7 +309,7 @@ class CartBanners {
 	 * Applies merge-tag/shortcode attribute overrides onto resolved params.
 	 *
 	 * Any attribute named like a canvas field (and not reserved) wins over
-	 * the mapped value, e.g. {{ogd_banner_abc coupon="SAVE10"}}.
+	 * the mapped value, e.g. {{ogd_cart_banner_abc coupon="SAVE10"}}.
 	 *
 	 * @param array $params Resolved params.
 	 * @param array $atts   Raw attributes.

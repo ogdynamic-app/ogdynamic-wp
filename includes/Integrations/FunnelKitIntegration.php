@@ -172,9 +172,9 @@ class FunnelKitIntegration implements Integration {
 	 * Builds the user-facing merge tag code for a banner.
 	 *
 	 * @param string $id Banner id.
-	 * @return string e.g. {{ogd_banner_a1b2c3d4e5f6}}
+	 * @return string e.g. {{ogd_cart_banner_a1b2c3d4e5f6}}
 	 */
 	public static function merge_tag_code( string $id ): string {
-		return '{{ogd_banner_' . $id . '}}';
+		return '{{ogd_cart_banner_' . $id . '}}';
 	}
 }

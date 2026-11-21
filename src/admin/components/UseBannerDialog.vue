@@ -38,7 +38,7 @@ const open = defineModel<boolean>("open", { default: false });
 
 const api = useOgdApi();
 
-const mergeTag = computed(() => `{{ogd_banner_${props.banner.id}}}`);
+const mergeTag = computed(() => `{{ogd_cart_banner_${props.banner.id}}}`);
 
 const emails = computed<CartBountyEmail[]>(
   () => props.status?.emails ?? [],
@@ -224,7 +224,7 @@ async function saveAssignment() {
               <code
                 class="ogd:rounded-md ogd:bg-gray-100 ogd:px-1.5 ogd:py-0.5 ogd:text-[12px] ogd:text-gray-800"
               >
-                [ogdynamic_banner id="{{ banner.id }}"]</code
+                [ogdynamic_cart_banner id="{{ banner.id }}"]</code
               >
               anywhere shortcodes are processed.
             </p>

@@ -61,7 +61,7 @@ class BannerTag extends \BWFAN_Merge_Tag {
 
 		$id = (string) ( $banner['id'] ?? '' );
 
-		$this->tag_name        = 'ogd_banner_' . $id;
+		$this->tag_name        = 'ogd_cart_banner_' . $id;
 		$this->tag_description = ! empty( $banner['name'] )
 			? sprintf( /* translators: %s: Banner name. */
 				__( 'Banner: %s', 'ogdynamic' ),
@@ -93,7 +93,7 @@ class BannerTag extends \BWFAN_Merge_Tag {
 	 *
 	 * Supported attributes:
 	 * - Any canvas field name overrides the mapped value for this send,
-	 *   e.g. {{ogd_banner_abc coupon="SAVE10"}}.
+	 *   e.g. {{ogd_cart_banner_abc coupon="SAVE10"}}.
 	 * - link: 'recovery' (cart recovery URL), 'none', or a URL — overrides
 	 *   the banner's saved link setting.
 	 * - width/alt: display overrides.
