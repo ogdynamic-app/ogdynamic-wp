@@ -1,8 +1,8 @@
 <?php
 /**
- * Plugin Name: ogdynamic - Open Graph & Social Media Image Generator for WordPress
+ * Plugin Name: ogdynamic - Open Graph Images & Abandoned Cart Recovery Email Banners
  * Plugin URI: https://ogdynamic.com
- * Description: Auto-generate dynamic Open Graph (OG) images for every post, page, WooCommerce product, and archive — plus any-size social media images like ad banners and product photo cards with the Canvas Image Gutenberg block, and personalized abandoned-cart recovery email banners for FunnelKit Automations and CartBounty. Boost link previews on Facebook, X/Twitter, and LinkedIn. SEO plugin friendly, ACF ready.
+ * Description: Auto-generate dynamic Open Graph (OG) images for every post, page, WooCommerce product, and archive — and recover abandoned carts with personalized email banners: every shopper sees their own name, cart total, and first product, delivered via FunnelKit Automations or CartBounty. Plus the Canvas Image block for any-size social media images. Boost link previews on Facebook, X/Twitter, and LinkedIn. SEO plugin friendly, ACF ready.
  * Version: 0.6.0
  * Author: mehedimi
  * Author URI: https://mehedi.im

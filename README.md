@@ -1,18 +1,18 @@
-# ogdynamic — Open Graph & Social Media Image Generator for WordPress
+# ogdynamic — Open Graph Images & Abandoned Cart Recovery Email Banners
 
 ![WordPress](https://img.shields.io/badge/WordPress-6.3%2B-blue)
 ![PHP](https://img.shields.io/badge/PHP-7.4%2B-purple)
 ![License](https://img.shields.io/badge/License-GPLv2-green)
 
-**ogdynamic** auto-generates dynamic Open Graph (OG) images for every WordPress post, page, WooCommerce product, and archive page — unique social share images built from your content, so every Facebook link preview, Twitter card, and LinkedIn snapshot looks fresh. Need more than OG images? The **Canvas Image Gutenberg block** renders any public canvas at **any size** — ad banners, product photo cards, social media graphics — straight into your media library as PNG, WebP, or JPEG. And for WooCommerce stores, **Cart Recovery Banners** personalize abandoned-cart emails — every shopper sees their own name, cart total, and first product in the banner, via FunnelKit Automations or CartBounty.
+**ogdynamic** auto-generates dynamic Open Graph (OG) images for every WordPress post, page, WooCommerce product, and archive page — unique social share images built from your content, so every Facebook link preview, Twitter card, and LinkedIn snapshot looks fresh. For WooCommerce stores, **Cart Recovery Banners** turn abandoned-cart emails into recoveries — every shopper sees their own name, cart total, and first product in the banner, and clicking it restores their cart — via FunnelKit Automations or CartBounty. Need more than OG images? The **Canvas Image Gutenberg block** renders any public canvas at **any size** — ad banners, product photo cards, social media graphics — straight into your media library as PNG, WebP, or JPEG.
 
 Images are designed in the [ogdynamic](https://ogdynamic.com) canvas editor and rendered by ogdynamic's CDN, so your WordPress server stays fast.
 
 ## Features
 
 - **Dynamic Open Graph images** — a unique OG image for every post, page, product, and archive, mapped from your content (title, excerpt, price, featured image, …)
-- **Canvas Image block** — Gutenberg block that renders any public canvas at any size into the media library, in PNG, WebP, or JPEG, with a live editor preview
 - **Cart Recovery Banners** — personalized banner images for abandoned-cart emails: each recipient sees their own name, cart total, and first product, and clicking the banner restores their cart. Works with FunnelKit Automations (paste a merge tag) and CartBounty (assign to a specific recovery email and position)
+- **Canvas Image block** — Gutenberg block that renders any public canvas at any size into the media library, in PNG, WebP, or JPEG, with a live editor preview
 - **Twitter card support** — `twitter:card` and `twitter:image` output for Twitter-sized images, with the Open Graph image reused for 1200×600 canvases
 - **WooCommerce integration** — product price, SKU, stock status, rating, categories, tags, and attributes as mappable fields
 - **ACF support** — map Advanced Custom Fields (text, image, gallery, link, taxonomy, …) into your OG images
