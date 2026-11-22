@@ -8,7 +8,7 @@ Stable tag: 0.6.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Recover abandoned carts with personalized email banners — every shopper sees their own name, cart total, and first product — for FunnelKit Automations and CartBounty. Plus unique Open Graph images for every post, page, and product. WooCommerce and ACF ready.
+Recover abandoned carts with personalized email banners (name, cart total, product) via FunnelKit & CartBounty — plus dynamic Open Graph images.
 
 == Description ==
 
