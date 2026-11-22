@@ -35,8 +35,13 @@ class Block {
 	/**
 	 * Registers the block type and its editor assets.
 	 *
-	 * The block is registered even when the editor bundle has not been built
-	 * so posts that already contain it keep rendering on the frontend.
+	 * The block type is registered even when the editor bundle has not
+	 * been built so posts that already contain it keep rendering on the
+	 * frontend. The editor script/style registration runs only in admin
+	 * (is_admin() — true wherever the block editor loads): a dynamic
+	 * block enqueues only view scripts on the frontend, and this block
+	 * has none, so public page views skip the bundle stat calls and
+	 * script registry entries entirely.
 	 *
 	 * @return void
 	 */
@@ -45,32 +50,34 @@ class Block {
 			'render_callback' => array( self::class, 'render' ),
 		);
 
-		$js_file  = 'dist/block/ogdynamic-block.js';
-		$css_file = 'dist/block/ogdynamic-block.css';
+		if ( is_admin() ) {
+			$js_file  = 'dist/block/ogdynamic-block.js';
+			$css_file = 'dist/block/ogdynamic-block.css';
 
-		if ( file_exists( OGDYNAMIC_PATH . $js_file ) ) {
-			wp_register_script(
-				self::HANDLE,
-				OGDYNAMIC_URL . $js_file,
-				array( 'wp-api-fetch', 'wp-block-editor', 'wp-blocks', 'wp-components', 'wp-data', 'wp-element', 'wp-i18n' ),
-				(string) filemtime( OGDYNAMIC_PATH . $js_file ),
-				true
-			);
+			if ( file_exists( OGDYNAMIC_PATH . $js_file ) ) {
+				wp_register_script(
+					self::HANDLE,
+					OGDYNAMIC_URL . $js_file,
+					array( 'wp-api-fetch', 'wp-block-editor', 'wp-blocks', 'wp-components', 'wp-data', 'wp-element', 'wp-i18n' ),
+					(string) filemtime( OGDYNAMIC_PATH . $js_file ),
+					true
+				);
 
-			wp_set_script_translations( self::HANDLE, 'ogdynamic', OGDYNAMIC_PATH . 'languages' );
+				wp_set_script_translations( self::HANDLE, 'ogdynamic', OGDYNAMIC_PATH . 'languages' );
 
-			$args['editor_script_handles'] = array( self::HANDLE );
-		}
+				$args['editor_script_handles'] = array( self::HANDLE );
+			}
 
-		if ( file_exists( OGDYNAMIC_PATH . $css_file ) ) {
-			wp_register_style(
-				self::HANDLE,
-				OGDYNAMIC_URL . $css_file,
-				array(),
-				(string) filemtime( OGDYNAMIC_PATH . $css_file )
-			);
+			if ( file_exists( OGDYNAMIC_PATH . $css_file ) ) {
+				wp_register_style(
+					self::HANDLE,
+					OGDYNAMIC_URL . $css_file,
+					array(),
+					(string) filemtime( OGDYNAMIC_PATH . $css_file )
+				);
 
-			$args['editor_style_handles'] = array( self::HANDLE );
+				$args['editor_style_handles'] = array( self::HANDLE );
+			}
 		}
 
 		register_block_type( OGDYNAMIC_PATH . 'blocks/canvas-image', $args );

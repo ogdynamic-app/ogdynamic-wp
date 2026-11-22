@@ -1,9 +1,9 @@
 <?php
 /**
- * Plugin Name: ogdynamic - Open Graph & Social Media Image Generator for WordPress
+ * Plugin Name: ogdynamic - Open Graph Images & Abandoned Cart Recovery Email Banners
  * Plugin URI: https://ogdynamic.com
- * Description: Auto-generate dynamic Open Graph (OG) images for every post, page, WooCommerce product, and archive — plus any-size social media images like ad banners and product photo cards with the Canvas Image Gutenberg block. Boost link previews on Facebook, X/Twitter, and LinkedIn. SEO plugin friendly, ACF ready.
- * Version: 0.5.0
+ * Description: Auto-generate dynamic Open Graph (OG) images for every post, page, WooCommerce product, and archive — and recover abandoned carts with personalized email banners: every shopper sees their own name, cart total, and first product, delivered via FunnelKit Automations or CartBounty. Plus the Canvas Image block for any-size social media images. Boost link previews on Facebook, X/Twitter, and LinkedIn. SEO plugin friendly, ACF ready.
+ * Version: 0.6.0
  * Author: mehedimi
  * Author URI: https://mehedi.im
  * Text Domain: ogdynamic
@@ -15,13 +15,14 @@
  * @package OGD
  */
 
+use OGDynamic\FeatureFlags;
 use OGDynamic\OGDynamic;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'OGDYNAMIC_VERSION', '0.5.0' );
+define( 'OGDYNAMIC_VERSION', '0.6.0' );
 define( 'OGDYNAMIC_PATH', plugin_dir_path( __FILE__ ) );
 define( 'OGDYNAMIC_URL', plugin_dir_url( __FILE__ ) );
 
@@ -49,6 +50,15 @@ if ( ! file_exists( $ogdynamic_autoload ) ) {
 }
 
 require_once $ogdynamic_autoload;
+
+// Seed the usage mask from DB truth on activation so it exists (and gates)
+// from request #1; later refreshes happen admin-side (FeatureFlags).
+register_activation_hook(
+	__FILE__,
+	static function () {
+		FeatureFlags::refresh_all();
+	}
+);
 
 add_action(
 	'plugins_loaded',

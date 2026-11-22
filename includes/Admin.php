@@ -23,7 +23,7 @@ class Admin {
 	 * @return void
 	 */
 	public static function add_menu(): void {
-		add_menu_page(
+		$hook = add_menu_page(
 			__( 'ogdynamic', 'ogdynamic' ),
 			__( 'ogdynamic', 'ogdynamic' ),
 			'manage_options',
@@ -32,6 +32,14 @@ class Admin {
 			'none',
 			58
 		);
+
+		if ( $hook ) {
+			// Refresh the usage mask when our own page loads (not every
+			// admin request) — model mutations already refresh on every
+			// save, so this is only the self-healing pass for drift the
+			// hooks can't see (plugin updates, direct DB edits).
+			add_action( "load-{$hook}", array( FeatureFlags::class, 'refresh_all' ) );
+		}
 
 		$callback_hook = add_submenu_page(
 			null,
@@ -73,16 +81,21 @@ class Admin {
 			return;
 		}
 
+		// Asset URLs are stable across builds, so cache-bust with the
+		// file's modification time — every rebuild gets a fresh version
+		// query even before the plugin version is bumped.
+		$version = (string) filemtime( OGDYNAMIC_PATH . 'dist/admin/.vite/manifest.json' );
+
 		wp_enqueue_script(
 			'ogdynamic-admin',
 			$asset['js'],
 			array(),
-			OGDYNAMIC_VERSION,
+			$version,
 			true
 		);
 
 		foreach ( $asset['css'] as $index => $css ) {
-			wp_enqueue_style( 'ogdynamic-admin-css-' . $index, $css, array(), OGDYNAMIC_VERSION );
+			wp_enqueue_style( 'ogdynamic-admin-css-' . $index, $css, array(), $version );
 		}
 
 		self::localize_admin_script();
@@ -169,7 +182,7 @@ class Admin {
 			'ogdynamic-admin',
 			'ogdynamicAdmin',
 			array(
-				'restUrl' => esc_url_raw( rest_url( 'ogdynamic/v1/' ) ),
+				'restUrl' => esc_url_raw( rest_url( RestController::NAMESPACE . '/' ) ),
 				'apiUrl'  => esc_url_raw( OGDYNAMIC_API ),
 				'cdnUrl'  => esc_url_raw( OGDYNAMIC_CDN ),
 				'nonce'   => wp_create_nonce( 'wp_rest' ),

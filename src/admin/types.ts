@@ -51,6 +51,92 @@ export type CursorPage<T> = {
   meta?: { next_cursor?: string | null };
 };
 
+export type CartBannerMapEntry = {
+  attr_key: string;
+  /** Source key, `custom`, or `''` (canvas default). */
+  key: string;
+  /** Static value used when `key` is `custom`. */
+  value?: string;
+};
+
+/** CartBounty assignment stored on the banner: one email + one position. */
+export type CartBountyAssignment = {
+  /** CartBounty automation step key (0 = First email). */
+  email: number;
+  /** Template position key (see CartBountyIntegration::PLACEMENTS). */
+  placement: string;
+};
+
+export type CartBanner = {
+  id: string;
+  name: string;
+  canvas_id: string;
+  canvas_name: string;
+  width: number;
+  height: number;
+  /** `recovery`, `none`, or a URL. */
+  link: string;
+  display_width: number;
+  /** Spacing above the image in emails (px, 0–200). */
+  margin_top?: number;
+  /** Spacing below the image in emails (px, 0–200). */
+  margin_bottom?: number;
+  /** Corner rounding in px (0–40; 0 = sharp corners). */
+  border_radius?: number;
+  map: CartBannerMapEntry[];
+  /** CartBounty email assignment, or null when the banner is unused there. */
+  cartbounty?: CartBountyAssignment | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type CartBannerSource = {
+  key: string;
+  label: string;
+  group: string;
+  /** `text` or `image`. */
+  type: string;
+};
+
+/** CartBounty automation email listed for the assignment dialog. */
+export type CartBountyEmail = {
+  id: number;
+  name: string;
+  enabled: boolean;
+};
+
+/** CartBounty banner position listed for the assignment dialog. */
+export type CartBountyPlacement = {
+  value: string;
+  label: string;
+};
+
+/** Integration slugs — single source for the plain-text ids, mirroring the PHP integrations' ::slug() values. */
+export const INTEGRATION_SLUG_FUNNELKIT = "funnelkit";
+export const INTEGRATION_SLUG_CARTBOUNTY = "cartbounty";
+
+/** The integrations a "Use in …" dialog can target. */
+export type IntegrationMode =
+  | typeof INTEGRATION_SLUG_FUNNELKIT
+  | typeof INTEGRATION_SLUG_CARTBOUNTY;
+
+export type IntegrationStatus = {
+  slug: string;
+  label: string;
+  available: boolean;
+  active: boolean;
+  note: string;
+  /** CartBounty: automation emails and banner positions for its dialog. */
+  emails?: CartBountyEmail[];
+  placements?: CartBountyPlacement[];
+};
+
+export type CartBannersPayload = {
+  data: CartBanner[];
+  sources: CartBannerSource[];
+  integrations: IntegrationStatus[];
+};
+
 export interface User {
   id: number;
   name: string;

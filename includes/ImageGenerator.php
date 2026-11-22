@@ -52,6 +52,18 @@ class ImageGenerator {
 	protected static ?int $image_width  = null;
 	protected static ?int $image_height = null;
 
+	/**
+	 * Per-request product memo (post id => product, or false when none).
+	 *
+	 * WooCommerce's read path (read_meta()) is an uncached direct query
+	 * fetching every postmeta row of the product, so one wc_get_product()
+	 * per mapped product field would repeat identical queries on every
+	 * product page render. Keyed by post id, so loops stay correct.
+	 *
+	 * @var array<int, \WC_Product|false>
+	 */
+	protected static array $product_memo = array();
+
 	public static function get_template_key(): ?string {
 		if ( is_category() ) {
 			$key = 'category';
@@ -151,7 +163,10 @@ class ImageGenerator {
 	private static function get_mapping_for_key( string $key ): ?array {
 		$mapping = Template::get_mapping( $key );
 
-		if ( empty( $mapping ) && 'default' !== $key ) {
+		// The default fallback only reads its option when one is actually
+		// configured — unmapped types on sites without a default mapping
+		// cost one query, not two.
+		if ( empty( $mapping ) && 'default' !== $key && FeatureFlags::enabled( FeatureFlags::OG_DEFAULT ) ) {
 			$mapping = Template::get_mapping( 'default' );
 		}
 
@@ -465,7 +480,13 @@ class ImageGenerator {
 				$value = get_the_title( $post );
 				break;
 			case 'excerpt':
-				$value = get_the_excerpt( $post );
+				// Resolved from the raw fields, never get_the_excerpt():
+				// without a manual excerpt that runs the full the_content
+				// filter chain (wp_trim_excerpt()), which would render the
+				// whole page inside <head> with page builders attached.
+				$value = has_excerpt( $post )
+					? wp_strip_all_tags( $post->post_excerpt )
+					: wp_trim_words( wp_strip_all_tags( $post->post_content ), 55 );
 				break;
 			case 'trimmed_content':
 				$value = wp_trim_words( wp_strip_all_tags( $post->post_content ), 24 );
@@ -710,6 +731,22 @@ class ImageGenerator {
 	}
 
 	/**
+	 * Gets the product of a post, memoized per request.
+	 *
+	 * @param int $post_id Post id.
+	 * @return \WC_Product|false Product, or false when unavailable.
+	 */
+	protected static function product( int $post_id ) {
+		if ( ! array_key_exists( $post_id, self::$product_memo ) ) {
+			self::$product_memo[ $post_id ] = function_exists( 'wc_get_product' )
+				? wc_get_product( $post_id )
+				: false;
+		}
+
+		return self::$product_memo[ $post_id ];
+	}
+
+	/**
 	 * Get WooCommerce product field value.
 	 *
 	 * @param WP_Post $post   Post object.
@@ -717,10 +754,7 @@ class ImageGenerator {
 	 * @return string Field value.
 	 */
 	private static function product_value( WP_Post $post, string $field ): string {
-		if ( ! function_exists( 'wc_get_product' ) ) {
-			return '';
-		}
-		$product = wc_get_product( $post->ID );
+		$product = self::product( $post->ID );
 		if ( ! $product ) {
 			return '';
 		}
@@ -767,11 +801,7 @@ class ImageGenerator {
 	}
 
 	private static function product_attributes( WP_Post $post ): array {
-		if ( ! function_exists( 'wc_get_product' ) ) {
-			return array();
-		}
-
-		$product = wc_get_product( $post->ID );
+		$product = self::product( $post->ID );
 		if ( ! $product ) {
 			return array();
 		}

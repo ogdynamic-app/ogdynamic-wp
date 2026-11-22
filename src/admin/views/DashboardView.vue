@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, onMounted } from "vue";
-import { RouterLink } from "vue-router";
 import { useOgdCloudApi } from "../composables/useOgdCloudApi";
+import AppButton from "../components/AppButton.vue";
 import type { ApiData, User } from "../types";
 
 const cloudApi = useOgdCloudApi();
@@ -35,7 +35,8 @@ onMounted(loadAccount);
     <p
       class="ogd:mt-2 ogd:mb-6 ogd:max-w-140 ogd:text-[15px] ogd:leading-relaxed ogd:text-gray-500"
     >
-      Manage the API connection and Open Graph image templates for this site.
+      Manage the API connection, Open Graph image templates, and cart
+      recovery banners for this site.
     </p>
 
     <div class="ogd:grid ogd:grid-cols-1 ogd:gap-4.5">
@@ -76,10 +77,7 @@ onMounted(loadAccount);
             v-if="isConnected"
             class="ogd:flex ogd:shrink-0 ogd:flex-wrap ogd:justify-end ogd:gap-2.5 max-[720px]:ogd:w-full max-[720px]:ogd:justify-start"
           >
-            <RouterLink
-              class="ogd:inline-flex ogd:items-center ogd:justify-center ogd:gap-2 ogd:rounded-full ogd:border! ogd:border-primary! ogd:bg-primary! ogd:px-4.5 ogd:py-2.5 ogd:text-[13px]! ogd:font-semibold ogd:text-white! ogd:no-underline ogd:transition ogd:hover:border-primary-hover! ogd:hover:bg-primary-hover! ogd:hover:text-white!"
-              to="/templates"
-            >
+            <AppButton size="lg" to="/templates">
               <svg
                 class="ogd:size-4"
                 viewBox="0 0 24 24"
@@ -96,11 +94,8 @@ onMounted(loadAccount);
                 <circle cx="16" cy="9" r="1" />
               </svg>
               Manage Open Graph Templates
-            </RouterLink>
-            <RouterLink
-              class="ogd:inline-flex ogd:items-center ogd:justify-center ogd:gap-2 ogd:rounded-full ogd:border! ogd:border-gray-200! ogd:bg-white! ogd:px-4.5 ogd:py-2.5 ogd:text-[13px]! ogd:font-semibold ogd:text-gray-700! ogd:no-underline ogd:transition ogd:hover:border-primary! ogd:hover:bg-primary-soft! ogd:hover:text-primary!"
-              to="/connection"
-            >
+            </AppButton>
+            <AppButton variant="secondary" size="lg" to="/connection">
               <svg
                 class="ogd:size-4"
                 viewBox="0 0 24 24"
@@ -115,7 +110,7 @@ onMounted(loadAccount);
                 <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
               </svg>
               Update connection
-            </RouterLink>
+            </AppButton>
           </div>
         </div>
 

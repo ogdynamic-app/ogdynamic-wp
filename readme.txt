@@ -1,23 +1,28 @@
-=== ogdynamic ===
+=== ogdynamic - Open Graph Images & Abandoned Cart Recovery Email Banners ===
 Contributors: mehedimi
-Tags: open graph, og image, social media images, woocommerce, acf
+Tags: open graph, og image, woocommerce, abandoned cart, email marketing
 Requires at least: 6.3
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.5.0
+Stable tag: 0.6.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Auto-generate unique Open Graph images for every post, product, and archive — plus any-size canvas banners. WooCommerce and ACF ready.
+Recover abandoned carts with personalized email banners — every shopper sees their own name, cart total, and first product — for FunnelKit Automations and CartBounty. Plus unique Open Graph images for every post, page, and product. WooCommerce and ACF ready.
 
 == Description ==
 
 When you share a link on Facebook, Twitter/X, LinkedIn, or Slack, the first thing people see is the link preview image. Without a compelling Open Graph image (og:image), your content gets ignored. Most WordPress sites either show the same generic image for every page or rely on the featured image alone — neither makes your content stand out in the feed.
 
-**ogdynamic** is an Open Graph image generator that automatically creates professional, dynamic OG images for every page on your WordPress site. It connects to [ogdynamic.com](https://ogdynamic.com) and uses your canvas templates to generate a unique social share image for each post, product, or archive — including the post title, author, excerpt, product price, categories, and more — all without slowing down your website. And when you need more than OG images, the Canvas Image block turns any canvas into ad banners, product photo cards, or social media graphics saved right in your media library.
+**ogdynamic** is an Open Graph image generator that automatically creates professional, dynamic OG images for every page on your WordPress site. It connects to [ogdynamic.com](https://ogdynamic.com) and uses your canvas templates to generate a unique social share image for each post, product, or archive — including the post title, author, excerpt, product price, categories, and more — all without slowing down your website.
+
+For WooCommerce stores, **Cart Recovery Banners** turn abandoned-cart emails into recoveries: each banner is personalized with the shopper's name, cart total, and the product they left behind — designed once in the canvas editor, delivered by the CDN at email open, and dropped into your emails with a merge tag (FunnelKit Automations) or a one-click assignment (CartBounty). Clicking the banner restores their cart in one click.
+
+And when you need more than OG images, the Canvas Image block turns any canvas into ad banners, product photo cards, or social media graphics saved right in your media library.
 
 = Why Use ogdynamic? =
 
+* **Recover abandoned carts** — Personalized banners inside your abandoned cart emails remind shoppers what they left behind and bring them back with one click — every shopper sees their own name, cart total, and first product
 * **More clicks from social media** — Eye-catching social preview images and link previews get more clicks from Facebook, Twitter/X, LinkedIn, and other platforms
 * **Save hours of design work** — No need to manually create share images for every post or product; your OG image generator runs on autopilot
 * **Works with your existing setup** — Compatible with popular SEO plugins like Yoast SEO, Rank Math, AIOSEO, SEOPress, and more — no duplicate og:image tags
@@ -26,6 +31,7 @@ When you share a link on Facebook, Twitter/X, LinkedIn, or Slack, the first thin
 
 = Features =
 
+* **Cart Recovery Banners** — Personalized banner images for abandoned cart emails: every recipient sees their own name, cart total, and first product, and clicking the banner restores their cart. Works with FunnelKit Automations (paste a merge tag) and CartBounty (assign to a specific recovery email and position), with width, spacing, and corner styling and a live preview
 * **Dynamic Open Graph Images** — Automatically generate unique OG images for posts, pages, products, and archives using your content
 * **Canvas Image Gutenberg Block** — Generate any canvas size in the block editor — ad banners, product photo cards, social media graphics — with a live preview, and save them to your media library as PNG, WebP, or JPEG
 * **Facebook, Twitter/X & LinkedIn Ready** — Outputs proper og:image, og:image:width, og:image:height, twitter:card, and twitter:image meta tags for rich link previews
@@ -45,6 +51,7 @@ When you share a link on Facebook, Twitter/X, LinkedIn, or Slack, the first thin
 3. Map your WordPress content fields to the template variables (title, subtitle, image, price, etc.)
 4. ogdynamic automatically generates the right Open Graph image for every page — no ongoing effort needed
 5. For other image sizes, add the ogdynamic Canvas Image block to any post or page to generate ad banners, product photo cards, or social graphics into your media library
+6. To recover abandoned carts, create a Cart Recovery Banner and paste its merge tag into a FunnelKit Automations email or assign it to a CartBounty recovery email
 
 = Template Mappings =
 
@@ -166,6 +173,15 @@ OG images are generated at 1200x630 pixels, which is the recommended Open Graph 
 Yes. The ogdynamic Canvas Image block works with any public canvas in your account, whatever its size — ad banners, product photo cards, social media graphics, and more. Pick the canvas in the block editor, fill in its fields with a live preview, and save the rendered image to your media library in PNG, WebP, or JPEG. Open Graph meta tags are only managed when a template mapping is configured.
 
 == Changelog ==
+
+= 0.6.0 =
+* New: Cart Recovery Banners — personalized banner images for your abandoned cart emails. Every recipient sees their own name, cart total and first product in the banner, and clicking it restores their cart
+* Works with FunnelKit Automations: each banner gets its own merge tag to paste anywhere in an email body; the banner renders at open time from the ogdynamic CDN, so nothing is downloaded or stored on your server
+* Works with CartBounty: assign a banner to one of its recovery emails (First, Second, Third…) and choose where it appears — above or below the heading, after the content text, below the button or in the footer. One banner per email, and CartBounty's email preview and test sends show it too
+* Banner styles: set the rendered width, the spacing above and below, and sharp or rounded corners — with a live preview showing exactly how the banner will sit in the email
+* New Cart Recovery Banners admin page under the ogdynamic menu, with per-banner integration dialogs that only appear while the email plugin is active
+* Developers: register custom email integrations, offer additional data sources, and adjust render URLs or banner markup through new filters
+* Performance: Open Graph images generate with fewer database queries on product pages and page-builder sites, and generated images are found faster for reuse
 
 = 0.5.0 =
 * Fix: generated OG images no longer render HTML entity codes as literal text (dashes and quotes showing up as number-and-semicolon codes). Titles and fields stored HTML-encoded — common with feed-imported posts — are decoded before the image is generated. Existing posts are fixed automatically after updating, no editing or re-import needed

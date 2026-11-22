@@ -8,6 +8,7 @@
 namespace OGDynamic\Controllers;
 
 use OGDynamic\OAuth;
+use OGDynamic\RestController;
 use WP_REST_Response;
 use WP_REST_Server;
 
@@ -25,7 +26,7 @@ class ConnectionController {
 	 */
 	public static function init(): void {
 		register_rest_route(
-			'ogdynamic/v1',
+			RestController::NAMESPACE,
 			'/connection',
 			array(
 				array(
@@ -42,7 +43,7 @@ class ConnectionController {
 		);
 
 		register_rest_route(
-			'ogdynamic/v1',
+			RestController::NAMESPACE,
 			'/connection/oauth/start',
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
