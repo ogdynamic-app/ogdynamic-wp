@@ -16,18 +16,24 @@ import type {
   IntegrationMode,
   IntegrationStatus,
 } from "../types";
-import { INTEGRATION_SLUG_FUNNELKIT } from "../types";
+import {
+  INTEGRATION_SLUG_CARTBOUNTY,
+  INTEGRATION_SLUG_FUNNELKIT,
+  INTEGRATION_SLUG_WCAP,
+} from "../types";
 import { useOgdApi } from "../composables/useOgdApi";
 import AppButton from "./AppButton.vue";
 import CopyButton from "./CopyButton.vue";
 // Emitted as real asset files (assetsInlineLimit: 0), not data URIs.
 import funnelKitMark from "../assets/icons/funnelkit-mark.png";
 import cartBountyMark from "../assets/icons/cartbounty-mark.svg";
+import wcapMark from "../assets/icons/wcap-mark.png";
 
 /**
- * Per-banner "how to use this banner" dialog. Two modes:
+ * Per-banner "how to use this banner" dialog. Three modes:
  * - `funnelkit`: banner-specific merge tag + insertion steps.
  * - `cartbounty`: email/placement assignment saved onto the banner.
+ * - `wcap`: position assignment saved onto the banner (one banner per plugin).
  */
 const props = defineProps<{
   banner: CartBanner;
@@ -88,6 +94,18 @@ const savedPlacement = computed(
 
 const emailId = ref("");
 const placement = ref("");
+const wcapPosition = ref("");
+
+// Saved WCAP state mirrors the CartBounty fallbacks: unassigned opens at
+// "Not assigned" (empty), so saving without picking anything is a no-op.
+const savedWcapPosition = computed(() => props.banner.wcap?.position ?? "");
+
+const wcapPlacementOptions = computed(() =>
+  (props.status?.placements ?? []).map((placement) => ({
+    value: placement.value,
+    label: placement.label,
+  })),
+);
 
 // Reset the form each time the dialog opens so it reflects the banner's
 // current assignment. `immediate` covers mounting with open already true
@@ -100,6 +118,7 @@ watch(
     if (isOpen) {
       emailId.value = savedEmail.value;
       placement.value = savedPlacement.value;
+      wcapPosition.value = savedWcapPosition.value;
     }
   },
   { immediate: true },
@@ -158,6 +177,58 @@ async function saveAssignment() {
           display_width: props.banner.display_width,
           map: props.banner.map,
           cartbounty,
+        },
+      },
+    );
+
+    open.value = false;
+    emit("saved");
+  } catch {
+    // Error handled by API error state.
+  }
+}
+
+// WCAP assignment: position only. "Not assigned" (empty) clears it, and
+// saving a claim replaces the previous holder (one banner per plugin).
+const wcapOptions = computed(() => [
+  { value: "", label: "Not assigned" },
+  ...wcapPlacementOptions.value,
+]);
+
+const wcapChanged = computed(
+  () => wcapPosition.value !== savedWcapPosition.value,
+);
+
+const wcapPositionName = computed(
+  () =>
+    wcapPlacementOptions.value.find((item) => item.value === wcapPosition.value)
+      ?.label ?? "",
+);
+
+const wcapNote = computed(() =>
+  wcapPosition.value
+    ? `Every recovery email that shows the cart contents renders this banner ${wcapPositionName.value.toLowerCase()}, personalized with each recipient's own name, products and cart total — and clicking it restores their cart. Only one banner holds this spot; assigning another replaces it.`
+    : "No position selected — saving removes this banner from Abandoned Cart Lite emails.",
+);
+
+async function saveWcapAssignment() {
+  const wcap = wcapPosition.value ? { position: wcapPosition.value } : null;
+
+  try {
+    await api.request<{ data: CartBanner }>(
+      `cart-banners/${props.banner.id}`,
+      {
+        method: "PUT",
+        body: {
+          name: props.banner.name,
+          canvas_id: props.banner.canvas_id,
+          canvas_name: props.banner.canvas_name,
+          width: props.banner.width,
+          height: props.banner.height,
+          link: props.banner.link,
+          display_width: props.banner.display_width,
+          map: props.banner.map,
+          wcap,
         },
       },
     );
@@ -245,7 +316,7 @@ async function saveAssignment() {
         </template>
 
         <!-- CartBounty mode: email + placement assignment. -->
-        <template v-else>
+        <template v-else-if="mode === INTEGRATION_SLUG_CARTBOUNTY">
           <DialogTitle
             class="ogd:m-0 ogd:flex ogd:items-center ogd:gap-3 ogd:font-display ogd:text-lg ogd:font-bold ogd:text-gray-900"
           >
@@ -349,6 +420,92 @@ async function saveAssignment() {
                 target="_blank"
                 rel="noreferrer"
                 >CartBounty</a
+              >
+              to assign this banner to its abandoned cart recovery emails.
+            </p>
+          </template>
+        </template>
+
+        <!-- Abandoned Cart Lite mode: position assignment. -->
+        <template v-else>
+          <DialogTitle
+            class="ogd:m-0 ogd:flex ogd:items-center ogd:gap-3 ogd:font-display ogd:text-lg ogd:font-bold ogd:text-gray-900"
+          >
+            <img
+              :src="wcapMark"
+              alt=""
+              class="ogd:size-10"
+              aria-hidden="true"
+            />
+            Use in Abandoned Cart Lite
+          </DialogTitle>
+          <DialogDescription
+            class="ogd:mt-1 ogd:mb-0 ogd:text-sm ogd:leading-relaxed ogd:text-gray-500"
+          >
+            Assign “{{ banner.name }}” to your recovery emails and pick where
+            it renders.
+          </DialogDescription>
+
+          <template v-if="status?.available">
+            <div class="ogd:mt-4">
+              <label
+                class="ogd:mb-1.5 ogd:block ogd:text-[13px] ogd:font-semibold ogd:text-gray-700"
+                for="ogd-wcap-position"
+              >
+                Where in the email
+              </label>
+              <select
+                id="ogd-wcap-position"
+                v-model="wcapPosition"
+                class="ogd:w-full ogd:appearance-none ogd:rounded-full! ogd:border ogd:border-gray-200! ogd:bg-gray-50 ogd:px-5! ogd:py-2.5 ogd:text-[13.5px]! ogd:text-gray-900! ogd:outline-none! ogd:transition ogd:focus:border-primary! ogd:focus:bg-white! ogd:focus:shadow-[0_0_0_3px_rgba(99,91,255,0.12)]"
+              >
+                <option
+                  v-for="option in wcapOptions"
+                  :key="option.value"
+                  :value="option.value"
+                >
+                  {{ option.label }}
+                </option>
+              </select>
+            </div>
+
+            <p
+              class="ogd:mt-4 ogd:mb-0 ogd:text-[13px] ogd:leading-relaxed ogd:text-gray-500"
+            >
+              {{ wcapNote }}
+            </p>
+
+            <div
+              v-if="api.error.value"
+              class="ogd:mt-4 ogd:rounded-[14px] ogd:border ogd:border-destructive/25 ogd:bg-destructive/5 ogd:px-3.5 ogd:py-3 ogd:text-destructive"
+            >
+              {{ api.error.value }}
+            </div>
+
+            <div class="ogd:mt-5 ogd:flex ogd:justify-end ogd:gap-2.5">
+              <DialogClose as-child>
+                <AppButton variant="secondary"> Cancel </AppButton>
+              </DialogClose>
+              <AppButton
+                :disabled="!wcapChanged || api.loading.value"
+                @click="saveWcapAssignment"
+              >
+                {{ api.loading.value ? "Saving…" : "Save assignment" }}
+              </AppButton>
+            </div>
+          </template>
+
+          <template v-else>
+            <p
+              class="ogd:mt-4 ogd:mb-4 ogd:text-sm ogd:leading-relaxed ogd:text-gray-500"
+            >
+              Install and activate
+              <a
+                class="ogd:font-semibold ogd:text-primary ogd:underline"
+                href="https://wordpress.org/plugins/woocommerce-abandoned-cart/"
+                target="_blank"
+                rel="noreferrer"
+                >Abandoned Cart Lite for WooCommerce</a
               >
               to assign this banner to its abandoned cart recovery emails.
             </p>

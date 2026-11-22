@@ -50,6 +50,11 @@ class FeatureFlags {
 	public const OG_DEFAULT = 8;
 
 	/**
+	 * A banner is assigned to Abandoned Cart Lite (Tyche).
+	 */
+	public const WCAP = 16;
+
+	/**
 	 * Settings key → ogdy_unused_features. The plugin's only autoloaded option.
 	 */
 	private const OPTION_KEY = 'unused_features';

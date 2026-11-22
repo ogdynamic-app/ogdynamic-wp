@@ -10,6 +10,7 @@ import type {
 import {
   INTEGRATION_SLUG_CARTBOUNTY,
   INTEGRATION_SLUG_FUNNELKIT,
+  INTEGRATION_SLUG_WCAP,
 } from "../types";
 import { useOgdApi } from "../composables/useOgdApi";
 import UseBannerDialog from "../components/UseBannerDialog.vue";
@@ -17,6 +18,7 @@ import AppButton from "../components/AppButton.vue";
 // Emitted as real asset files (assetsInlineLimit: 0), not data URIs.
 import funnelKitMark from "../assets/icons/funnelkit-mark.png";
 import cartBountyMark from "../assets/icons/cartbounty-mark.svg";
+import wcapMark from "../assets/icons/wcap-mark.png";
 
 const api = useOgdApi();
 const deleteApi = useOgdApi();
@@ -39,7 +41,12 @@ const cartBounty = computed<IntegrationStatus | undefined>(() =>
   ),
 );
 
-// Per-banner usage dialog ("Use in FunnelKit" / "Use in CartBounty").
+const wcap = computed<IntegrationStatus | undefined>(() =>
+  integrations.value.find((item) => item.slug === INTEGRATION_SLUG_WCAP),
+);
+
+// Per-banner usage dialog ("Use in FunnelKit" / "Use in CartBounty" /
+// "Use in Abandoned Cart Lite").
 const dialogOpen = ref(false);
 const dialogMode = ref<IntegrationMode>(INTEGRATION_SLUG_FUNNELKIT);
 const dialogBanner = ref<CartBanner | undefined>();
@@ -51,9 +58,11 @@ function openDialog(banner: CartBanner, mode: IntegrationMode) {
 }
 
 function dialogStatus(mode: IntegrationMode) {
-  return mode === INTEGRATION_SLUG_FUNNELKIT
-    ? funnelKit.value
-    : cartBounty.value;
+  if (mode === INTEGRATION_SLUG_FUNNELKIT) {
+    return funnelKit.value;
+  }
+
+  return mode === INTEGRATION_SLUG_CARTBOUNTY ? cartBounty.value : wcap.value;
 }
 
 async function onDialogSaved() {
@@ -77,12 +86,12 @@ type BannerIntegration = {
 function bannerIntegrations(banner: CartBanner): BannerIntegration[] {
   const list: BannerIntegration[] = [];
 
-  // Only the CartBounty assignment is per-banner and badge-worthy; FunnelKit
-  // registers a merge tag for every banner automatically, so a FunnelKit
-  // badge would carry no information. The badge only shows while CartBounty
-  // is active — a deactivated plugin renders nothing, so a badge would
-  // advertise an integration that is not in use (the saved assignment is
-  // preserved and the badge returns when the plugin comes back).
+  // Only concrete per-banner wiring is badge-worthy; FunnelKit registers a
+  // merge tag for every banner automatically, so a FunnelKit badge would
+  // carry no information. Badges only show while their plugin is active —
+  // a deactivated plugin renders nothing, so a badge would advertise an
+  // integration that is not in use (the saved assignment is preserved and
+  // the badge returns when the plugin comes back).
   const assignment = banner.cartbounty;
 
   if (assignment && cartBounty.value?.available) {
@@ -98,6 +107,19 @@ function bannerIntegrations(banner: CartBanner): BannerIntegration[] {
       detail: [email?.name, placement?.label.toLowerCase()]
         .filter(Boolean)
         .join(" · "),
+    });
+  }
+
+  const wcapAssignment = banner.wcap;
+
+  if (wcapAssignment && wcap.value?.available) {
+    const position = wcap.value.placements?.find(
+      (item) => item.value === wcapAssignment.position,
+    );
+
+    list.push({
+      label: "Abandoned Cart Lite",
+      detail: position?.label.toLowerCase() ?? "",
     });
   }
 
@@ -300,6 +322,32 @@ onMounted(() => {
                   Use in CartBounty
                   <svg
                     v-if="banner.cartbounty"
+                    class="ogd:size-3.5 ogd:text-success-text"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M20 6 9 17l-5-5" />
+                  </svg>
+                </AppButton>
+                <AppButton
+                  v-if="wcap?.available"
+                  variant="secondary"
+                  @click="openDialog(banner, INTEGRATION_SLUG_WCAP)"
+                >
+                  <img
+                    :src="wcapMark"
+                    alt=""
+                    class="ogd:size-5"
+                    aria-hidden="true"
+                  />
+                  Use in Abandoned Cart
+                  <svg
+                    v-if="banner.wcap"
                     class="ogd:size-3.5 ogd:text-success-text"
                     viewBox="0 0 24 24"
                     fill="none"

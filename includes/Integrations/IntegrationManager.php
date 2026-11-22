@@ -35,6 +35,7 @@ class IntegrationManager {
 	public const INTEGRATIONS = array(
 		FunnelKitIntegration::class,
 		CartBountyIntegration::class,
+		WcapIntegration::class,
 	);
 
 	/**

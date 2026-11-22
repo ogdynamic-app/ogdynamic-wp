@@ -227,6 +227,10 @@ class CartBannersController {
 				? self::sanitize_assignment( $request->get_param( 'cartbounty' ) )
 				: ( $existing['cartbounty'] ?? null );
 
+			$wcap = $request->has_param( 'wcap' )
+				? self::sanitize_wcap_assignment( $request->get_param( 'wcap' ) )
+				: ( $existing['wcap'] ?? null );
+
 		// The banner keeps a snapshot of the canvas dims so merge tags can
 		// size the email image without a SaaS call at send time.
 		return array(
@@ -243,6 +247,7 @@ class CartBannersController {
 			'border_radius' => $border_radius,
 			'map'           => $map,
 			'cartbounty'    => $cartbounty,
+			'wcap'          => $wcap,
 		);
 	}
 
@@ -271,6 +276,29 @@ class CartBannersController {
 			'email'     => $email,
 			'placement' => $placement,
 		);
+	}
+
+	/**
+	 * Sanitizes the banner's Abandoned Cart Lite assignment.
+	 *
+	 * Position only — the channel is one-per-plugin (see
+	 * CartBanners::claim_wcap_channel()), so there is no email selector.
+	 *
+	 * @param mixed $value Raw assignment ({position}) or null.
+	 * @return array|null Assignment, or null when cleared/invalid.
+	 */
+	protected static function sanitize_wcap_assignment( $value ): ?array {
+		if ( ! is_array( $value ) ) {
+			return null;
+		}
+
+		$position = isset( $value['position'] ) ? sanitize_key( (string) $value['position'] ) : '';
+
+		if ( '' === $position ) {
+			return null;
+		}
+
+		return array( 'position' => $position );
 	}
 
 	/**
@@ -340,20 +368,52 @@ class CartBannersController {
 			),
 			'cartbounty'    => array(
 				'required'          => false,
-				'type'              => 'object',
 				'validate_callback' => array( self::class, 'validate_assignment' ),
+			),
+			'wcap'          => array(
+				'required'          => false,
+				'validate_callback' => array( self::class, 'validate_wcap_assignment' ),
 			),
 		);
 	}
 
 	/**
+	 * Validates an Abandoned Cart Lite assignment shape.
+	 *
+	 * Null (or an empty object) clears the assignment. The arg declares
+	 * no `type` on purpose: core's injected rest_parse_request_arg would
+	 * run schema validation inside the SANITIZE step and reject the
+	 * clearing null before this callback ever runs — the custom
+	 * validate_callback owns the whole shape check instead.
+	 *
+	 * @param mixed $value The assignment to validate.
+	 * @return bool True if valid, false otherwise.
+	 */
+	public static function validate_wcap_assignment( $value ): bool {
+		if ( null === $value || array() === $value ) {
+			return true;
+		}
+
+		return is_array( $value )
+			&& isset( $value['position'] )
+			&& is_string( $value['position'] )
+			&& 1 === preg_match( '/^[a-z_]{2,30}$/', $value['position'] );
+	}
+
+	/**
 	 * Validates a CartBounty assignment shape.
+	 *
+	 * Null (or an empty object) clears the assignment. The arg declares
+	 * no `type` on purpose: core's injected rest_parse_request_arg would
+	 * run schema validation inside the SANITIZE step and reject the
+	 * clearing null before this callback ever runs — the custom
+	 * validate_callback owns the whole shape check instead.
 	 *
 	 * @param mixed $value The assignment to validate.
 	 * @return bool True if valid, false otherwise.
 	 */
 	public static function validate_assignment( $value ): bool {
-		if ( null === $value ) {
+		if ( null === $value || array() === $value ) {
 			return true;
 		}
 
