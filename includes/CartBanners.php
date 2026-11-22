@@ -111,19 +111,40 @@ class CartBanners {
 	}
 
 	/**
-	 * Gets every banner.
+	 * Gets every banner (flag-guarded).
 	 *
-	 * One prefix query (the Template::get_activated_post_types() pattern),
-	 * memoized per request — merge-tag registration reads this on every
-	 * FunnelKit send.
+	 * Flag-guarded (FeatureFlags::CART_BANNERS): when the usage mask says
+	 * no banners exist, the scan is skipped entirely — banner-less sites
+	 * pay nothing, including FunnelKit's per-send read.
 	 *
 	 * @return array Banners keyed by id.
 	 */
 	public static function get_all(): array {
-		if ( null !== self::$cache ) {
-			return self::$cache;
+		if ( ! FeatureFlags::enabled( FeatureFlags::CART_BANNERS ) ) {
+			return array();
 		}
 
+		if ( null === self::$cache ) {
+			self::$cache = self::scan_all();
+		}
+
+		return self::$cache;
+	}
+
+	/**
+	 * Loads every banner row straight from the options table.
+	 *
+	 * One prefix query (the Template::get_activated_post_types() pattern).
+	 * Unguarded AND unmemoized by design: FeatureFlags::refresh_all()
+	 * reads through this to recompute the very bit the guard in get_all()
+	 * checks and must see current rows — a guarded read could never heal
+	 * a stale "unused" bit, and a memoized one could miss rows that
+	 * appeared or vanished earlier in the request. get_all() carries the
+	 * per-request memo (merge-tag registration reads it on every send).
+	 *
+	 * @return array Banners keyed by id.
+	 */
+	public static function scan_all(): array {
 		global $wpdb;
 
 		$prefix = Settings::PREFIX . self::OPTION_PREFIX;
@@ -147,8 +168,6 @@ class CartBanners {
 			}
 		}
 
-		self::$cache = $banners;
-
 		return $banners;
 	}
 
@@ -161,7 +180,7 @@ class CartBanners {
 	public static function get( string $id ): ?array {
 		$id = strtolower( $id );
 
-		if ( ! preg_match( '/^[a-f0-9]{12}$/', $id ) ) {
+		if ( ! preg_match( '/^[a-f0-9]{12}$/', $id ) || ! FeatureFlags::enabled( FeatureFlags::CART_BANNERS ) ) {
 			return null;
 		}
 
@@ -195,6 +214,10 @@ class CartBanners {
 		Settings::update( self::OPTION_PREFIX . $banner['id'], $banner );
 
 		self::$cache = null;
+
+		// A save may both create the first banner and change a CartBounty
+		// assignment, so every affected bit is recomputed from truth.
+		FeatureFlags::refresh_all();
 
 		return $banner;
 	}
@@ -242,6 +265,8 @@ class CartBanners {
 		Settings::delete( self::OPTION_PREFIX . strtolower( $id ) );
 
 		self::$cache = null;
+
+		FeatureFlags::refresh_all();
 
 		return true;
 	}

@@ -163,7 +163,10 @@ class ImageGenerator {
 	private static function get_mapping_for_key( string $key ): ?array {
 		$mapping = Template::get_mapping( $key );
 
-		if ( empty( $mapping ) && 'default' !== $key ) {
+		// The default fallback only reads its option when one is actually
+		// configured — unmapped types on sites without a default mapping
+		// cost one query, not two.
+		if ( empty( $mapping ) && 'default' !== $key && FeatureFlags::enabled( FeatureFlags::OG_DEFAULT ) ) {
 			$mapping = Template::get_mapping( 'default' );
 		}
 

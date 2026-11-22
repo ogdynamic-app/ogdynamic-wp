@@ -7,6 +7,7 @@
 
 namespace OGDynamic\Integrations;
 
+use OGDynamic\FeatureFlags;
 use OGDynamic\Settings;
 
 /**
@@ -75,18 +76,38 @@ class IntegrationManager {
 	}
 
 	/**
-	 * Boots available integrations.
+	 * Boots available, used integrations.
 	 *
 	 * Runs unconditionally from OGDynamic::boot() — email plugins send via
-	 * cron and ActionScheduler, so integrations must not be admin-gated.
+	 * cron and ActionScheduler, so integrations must not be admin-gated —
+	 * but each integration only registers its hooks when the site actually
+	 * uses it (FeatureFlags). An active-but-unused integration costs one
+	 * availability check and one cached bit test; with 10-20 integrations
+	 * that is the difference between hundreds of dead registrations per
+	 * request and none.
+	 *
+	 * Integrations may declare `feature_bit()` (their FeatureFlags bit) and
+	 * `is_used( $banners )` statics — checked via method_exists rather than
+	 * the Integration interface so third-party registrations can't fatal;
+	 * without them the integration gates on FeatureFlags::CART_BANNERS.
 	 *
 	 * @return void
 	 */
 	public static function register(): void {
 		foreach ( self::integrations() as $integration ) {
-			if ( $integration::is_available() ) {
-				$integration::init();
+			if ( ! $integration::is_available() ) {
+				continue;
 			}
+
+			$bit = method_exists( $integration, 'feature_bit' )
+				? $integration::feature_bit()
+				: FeatureFlags::CART_BANNERS;
+
+			if ( ! FeatureFlags::enabled( $bit ) ) {
+				continue;
+			}
+
+			$integration::init();
 		}
 	}
 

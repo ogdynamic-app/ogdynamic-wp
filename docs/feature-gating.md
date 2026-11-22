@@ -66,6 +66,9 @@ class FeatureFlags {
 	/** Bit 2 — a banner is assigned to a CartBounty email (integration in use). */
 	public const CARTBOUNTY = 4;
 
+	/** Bit 3 — a default OG mapping exists (ogdy_mapping_default row). */
+	public const OG_DEFAULT = 8;
+
 	// Future integrations append constants here — bits 3, 4, … (PHP int
 	// gives 62 usable bits; see §3 for the allocation workflow).
 
@@ -222,6 +225,7 @@ tables, and a bit that can't be recomputed from truth would violate Principle
 | `OGDynamic::boot()` — `CartBanners::register_shortcode()` call | wrap in `enabled( CART_BANNERS )` | no `add_shortcode` |
 | `IntegrationManager::register()` | per-integration gate (§3) | zero registrations per unused integration |
 | `Template::get_mapping()` top | `enabled( OG_MAPPINGS )` → `return array()` | defense in depth for any caller that registers its own hooks (SEO-plugin integrations, third parties) |
+| `ImageGenerator::get_mapping_for_key()` default fallback | `enabled( OG_DEFAULT )` | unmapped content types on sites without a default mapping cost one query (the specific miss), not two |
 | `CartBanners::get_all()` | `enabled( CART_BANNERS )` → `return array()` | skips the LIKE scan — including the one FunnelKit's boot performs per send on banner-less sites; admin REST list stays correct because bits are recomputed on every mutation |
 | `CartBanners::get()` | `enabled( CART_BANNERS )` → `return null` | skips the shortcode's option read |
 
@@ -236,10 +240,10 @@ queries. REST route registration and `Block::register()` stay unconditional
 
 | Trigger | What runs | Why |
 |---|---|---|
-| `admin_init` (real page loads only: `is_admin() && ! wp_doing_ajax()`) | `FeatureFlags::refresh_all()` | Self-heals *everything* — manual DB edits, plugin updates, bits added by new versions — on every admin visit. Cost: 2 indexed prefix LIKEs + one banner scan, i.e. the same queries the admin page already makes. **The `wp_doing_ajax()` exclusion matters:** `admin_init` also fires on every `admin-ajax.php` request, including shopper-triggered AJAX from other plugins — refreshing there would *add* queries to customer-facing requests, the exact opposite of the goal. |
+| The plugin's own admin page load (`load-toplevel_page_ogdynamic`, wired in `Admin::add_menu()` from the hook `add_menu_page()` returns) | `FeatureFlags::refresh_all()` | Self-heals everything — manual DB edits, plugin updates, bits added by new versions — whenever the customer opens our UI. Model mutations refresh on every save, so other admin pages, `admin-ajax.php`, REST, frontend, cron, and email sends never run it: 0 added queries outside our page. |
 | `CartBanners::save()` / `delete()` | `refresh( CART_BANNERS )` + integration bits (assignment may have changed) | Mutations through the REST controllers refresh immediately, so the SPA and any concurrent cron send see fresh bits without an admin reload. Living in the model methods (not the controllers) covers every caller. |
-| `Template::update_mapping()` / `delete_mapping()` | `refresh( OG_MAPPINGS )` | same |
-| `Template::get_mapping()` legacy-design prune branch | `refresh( OG_MAPPINGS )` (only when it actually deleted) | the prune is already a write path; the bit must follow its own truth |
+| `Template::update_mapping()` / `delete_mapping()` | `refresh( OG_MAPPINGS )` + `refresh_og_default()` when the type is `default` | same |
+| `Template::get_mapping()` legacy-design prune branch | `refresh( OG_MAPPINGS )` (+ the default bit when pruning `default`; only when it actually deleted) | the prune is already a write path; the bit must follow its own truth |
 | `register_activation_hook` | `refresh_all()` | seeds the mask on first activate so it exists from request #1 |
 
 Never refreshed on: frontend reads, cron/ActionScheduler sends, email sends.
@@ -271,7 +275,7 @@ review** (standing workflow), and is independently shippable.
   core bits only).
 - Guards: `MetaTags::register()` and `CartBanners::register_shortcode()` wraps
   in `boot()`, `Template::get_mapping()`, `CartBanners::get_all()`/`get()`.
-- Refresh triggers: `admin_init` (page loads only), model mutation hooks,
+- Refresh triggers: the plugin's admin page load (`load-toplevel_page_ogdynamic`), model mutation hooks,
   activation hook.
 - Smoke: query-count matrix, bit transitions via throwaway mapping/banner
   create→delete, missing-mask fallback, fail-open simulation (bit absent from

@@ -15,6 +15,7 @@
  * @package OGD
  */
 
+use OGDynamic\FeatureFlags;
 use OGDynamic\OGDynamic;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -49,6 +50,15 @@ if ( ! file_exists( $ogdynamic_autoload ) ) {
 }
 
 require_once $ogdynamic_autoload;
+
+// Seed the usage mask from DB truth on activation so it exists (and gates)
+// from request #1; later refreshes happen admin-side (FeatureFlags).
+register_activation_hook(
+	__FILE__,
+	static function () {
+		FeatureFlags::refresh_all();
+	}
+);
 
 add_action(
 	'plugins_loaded',

@@ -8,6 +8,7 @@
 namespace OGDynamic\Integrations;
 
 use OGDynamic\CartBanners;
+use OGDynamic\FeatureFlags;
 use OGDynamic\Integrations\FunnelKit\BannerTag;
 use OGDynamic\Integrations\FunnelKit\Sources;
 
@@ -56,6 +57,31 @@ class FunnelKitIntegration implements Integration {
 	 */
 	public static function is_available(): bool {
 		return class_exists( 'BWFAN_Merge_Tag_Loader' );
+	}
+
+	/**
+	 * FeatureFlags bit gating this integration's boot.
+	 *
+	 * Shares CART_BANNERS: every banner registers a merge tag, so "any
+	 * banner exists" is exactly FunnelKit's usage truth — a separate bit
+	 * would always equal it. (Pasting a tag into an email isn't observable
+	 * from our tables; a bit that can't be recomputed from truth would
+	 * violate the mask's contract.)
+	 *
+	 * @return int
+	 */
+	public static function feature_bit(): int {
+		return FeatureFlags::CART_BANNERS;
+	}
+
+	/**
+	 * Whether any banner exists — FunnelKit's usage truth.
+	 *
+	 * @param array $banners All banners (already loaded by the refresh).
+	 * @return bool
+	 */
+	public static function is_used( array $banners ): bool {
+		return array() !== $banners;
 	}
 
 	/**

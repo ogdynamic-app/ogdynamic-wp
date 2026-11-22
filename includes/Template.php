@@ -428,14 +428,29 @@ class Template {
 	 * type) are pruned on read so they stop rendering and disappear from
 	 * the activated post types and the mapping UI.
 	 *
+	 * Flag-guarded (FeatureFlags::OG_MAPPINGS): when the usage mask says no
+	 * mappings exist, the option read is skipped — the mask is refreshed on
+	 * every mapping mutation and admin page load, so it is never stale
+	 * against the rows it summarizes.
+	 *
 	 * @param string $post_type The post type slug.
 	 * @return array The mapping configuration array.
 	 */
 	public static function get_mapping( string $post_type ): array {
+		if ( ! FeatureFlags::enabled( FeatureFlags::OG_MAPPINGS ) ) {
+			return array();
+		}
+
 		$mapping = (array) get_option( self::option_name( $post_type ), array() );
 
 		if ( ! empty( $mapping ) && ( $mapping['type'] ?? '' ) !== 'canvas' ) {
 			delete_option( self::option_name( $post_type ) );
+
+			FeatureFlags::refresh( FeatureFlags::OG_MAPPINGS );
+
+			if ( 'default' === $post_type ) {
+				FeatureFlags::refresh_og_default();
+			}
 
 			return array();
 		}
@@ -451,7 +466,15 @@ class Template {
 	 * @return bool True if updated successfully, false otherwise.
 	 */
 	public static function update_mapping( string $post_type, array $value ): bool {
-		return update_option( self::option_name( $post_type ), $value, false );
+		$updated = update_option( self::option_name( $post_type ), $value, false );
+
+		FeatureFlags::refresh( FeatureFlags::OG_MAPPINGS );
+
+		if ( 'default' === $post_type ) {
+			FeatureFlags::refresh_og_default();
+		}
+
+		return $updated;
 	}
 
 	/**
@@ -461,7 +484,15 @@ class Template {
 	 * @return bool True if deleted successfully, false otherwise.
 	 */
 	public static function delete_mapping( string $post_type ): bool {
-		return delete_option( self::option_name( $post_type ) );
+		$deleted = delete_option( self::option_name( $post_type ) );
+
+		FeatureFlags::refresh( FeatureFlags::OG_MAPPINGS );
+
+		if ( 'default' === $post_type ) {
+			FeatureFlags::refresh_og_default();
+		}
+
+		return $deleted;
 	}
 
 	/**

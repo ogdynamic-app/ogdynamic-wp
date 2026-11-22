@@ -23,7 +23,7 @@ class Admin {
 	 * @return void
 	 */
 	public static function add_menu(): void {
-		add_menu_page(
+		$hook = add_menu_page(
 			__( 'ogdynamic', 'ogdynamic' ),
 			__( 'ogdynamic', 'ogdynamic' ),
 			'manage_options',
@@ -32,6 +32,14 @@ class Admin {
 			'none',
 			58
 		);
+
+		if ( $hook ) {
+			// Refresh the usage mask when our own page loads (not every
+			// admin request) — model mutations already refresh on every
+			// save, so this is only the self-healing pass for drift the
+			// hooks can't see (plugin updates, direct DB edits).
+			add_action( "load-{$hook}", array( FeatureFlags::class, 'refresh_all' ) );
+		}
 
 		$callback_hook = add_submenu_page(
 			null,

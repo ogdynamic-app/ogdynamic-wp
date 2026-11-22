@@ -8,6 +8,7 @@
 namespace OGDynamic\Integrations;
 
 use OGDynamic\CartBanners;
+use OGDynamic\FeatureFlags;
 use OGDynamic\Integrations\CartBounty\Sources;
 
 /**
@@ -114,6 +115,31 @@ class CartBountyIntegration implements Integration {
 	 */
 	public static function is_available(): bool {
 		return defined( 'CARTBOUNTY_VERSION_NUMBER' );
+	}
+
+	/**
+	 * FeatureFlags bit gating this integration's boot.
+	 *
+	 * @return int
+	 */
+	public static function feature_bit(): int {
+		return FeatureFlags::CARTBOUNTY;
+	}
+
+	/**
+	 * Whether a banner is assigned to a CartBounty email — its usage truth.
+	 *
+	 * @param array $banners All banners (already loaded by the refresh).
+	 * @return bool
+	 */
+	public static function is_used( array $banners ): bool {
+		foreach ( $banners as $banner ) {
+			if ( ! empty( $banner['cartbounty'] ) ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/**
