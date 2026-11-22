@@ -53,7 +53,9 @@ class CartBountyIntegration implements Integration {
 	 * (`cartbounty_pro_automation_{template}_{position}_{step}` — templates
 	 * light/rows/columns, the same five positions as the free template,
 	 * steps 1-4; see https://www.cartbounty.com/actions-and-filters/) run
-	 * the same router, so Pro users get the banner without extra setup.
+	 * the same router — registered only while Pro is active, since the
+	 * free plugin never fires them — so Pro users get the banner without
+	 * extra setup.
 	 *
 	 * @return void
 	 */
@@ -75,13 +77,34 @@ class CartBountyIntegration implements Integration {
 		// list drives this loop. Pro also fires a footer_end action that is
 		// deliberately NOT registered: the free plugin has no equivalent
 		// position, so it would offer an assignment that never renders.
-		foreach ( array( 'light', 'rows', 'columns' ) as $template ) {
-			foreach ( array_keys( self::PLACEMENTS ) as $position ) {
-				foreach ( range( 1, 4 ) as $step ) {
-					add_action( "cartbounty_pro_automation_{$template}_{$position}_{$step}", array( self::class, 'render_banner' ) );
+		// Registered only while Pro is active — the free plugin never
+		// fires cartbounty_pro_automation_* hooks (its light template
+		// uses the free actions above), so without Pro these are pure
+		// dead registrations.
+		if ( self::is_pro_active() ) {
+			foreach ( array( 'light', 'rows', 'columns' ) as $template ) {
+				foreach ( array_keys( self::PLACEMENTS ) as $position ) {
+					foreach ( range( 1, 4 ) as $step ) {
+						add_action( "cartbounty_pro_automation_{$template}_{$position}_{$step}", array( self::class, 'render_banner' ) );
+					}
 				}
 			}
 		}
+	}
+
+	/**
+	 * Whether CartBounty Pro is installed and active.
+	 *
+	 * @return bool
+	 */
+	protected static function is_pro_active(): bool {
+		if ( ! function_exists( 'is_plugin_active' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/plugin.php';
+		}
+
+		$plugin = 'woo-save-abandoned-carts-pro/cartbounty-pro-abandoned-carts.php';
+
+		return is_plugin_active( $plugin ) || is_plugin_active_for_network( $plugin );
 	}
 
 	/**
