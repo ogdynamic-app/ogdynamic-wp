@@ -1,7 +1,7 @@
 === ogdynamic - Open Graph Images & Abandoned Cart Recovery Email Banners ===
 Contributors: mehedimi
 Tags: open graph, og image, woocommerce, abandoned cart, email marketing
-Requires at least: 6.3
+Requires at least: 7.0
 Tested up to: 7.1
 Requires PHP: 7.4
 Stable tag: 0.6.0
@@ -114,7 +114,7 @@ This plugin's source code is available at [https://github.com/ogdynamic-app/ogdy
 
 = Requirements =
 
-* WordPress 6.3 or higher
+* WordPress 7.0 or higher
 * PHP 7.4 or higher
 * An ogdynamic.com account (OAuth connection required)
 
