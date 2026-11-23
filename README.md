@@ -1,6 +1,6 @@
 # ogdynamic — Open Graph Images & Abandoned Cart Recovery Email Banners
 
-![WordPress](https://img.shields.io/badge/WordPress-6.3%2B-blue)
+![WordPress](https://img.shields.io/badge/WordPress-7.0%2B-blue)
 ![PHP](https://img.shields.io/badge/PHP-7.4%2B-purple)
 ![License](https://img.shields.io/badge/License-GPLv2-green)
 
