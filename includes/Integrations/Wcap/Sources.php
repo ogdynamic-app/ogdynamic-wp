@@ -111,9 +111,42 @@ class Sources {
 				'first_product_price' => $first['price'] ?? null,
 				'first_product_image' => $first['image'] ?? null,
 				'first_product_sku'   => $first['sku'] ?? null,
-				'recovery_url'        => '' !== self::$recovery_url ? self::$recovery_url : null,
+				'recovery_url'        => self::recipient_recovery_url( $cart ),
 			)
 		);
+	}
+
+	/**
+	 * The captured recovery link — but only when it belongs to this
+	 * recipient.
+	 *
+	 * The capture happens on Tyche's `cart.link` tag, and a hand-edited
+	 * template can keep `{{products.cart}}` while dropping `{{cart.link}}`;
+	 * that render would then inherit the PREVIOUS recipient's captured
+	 * link and email a banner restoring someone else's cart. Tyche builds
+	 * the track URL with `user_email={recipient}`, so the URL's owner is
+	 * checked against the cart row being emailed (the row's user_email is
+	 * always set by the cron before the filters fire — both its guest and
+	 * registered branches assign it first). No match (or no email to
+	 * check) means no link: the banner renders unlinked rather than
+	 * pointing at the wrong cart.
+	 *
+	 * @param object $cart Cart row.
+	 * @return string|null Recovery URL owned by this recipient, or null.
+	 */
+	protected static function recipient_recovery_url( object $cart ): ?string {
+		$url   = self::$recovery_url;
+		$email = isset( $cart->user_email ) ? (string) $cart->user_email : '';
+
+		if ( '' === $url || '' === $email ) {
+			return null;
+		}
+
+		if ( false === strpos( $url, $email ) && false === strpos( $url, rawurlencode( $email ) ) ) {
+			return null;
+		}
+
+		return $url;
 	}
 
 	/**
@@ -222,29 +255,40 @@ class Sources {
 			return array();
 		}
 
-		$ids = array(
-			$item['variation_id'],
-			$item['product_id'],
-		);
+		$product = null;
 
-		foreach ( array_filter( array_unique( $ids ) ) as $id ) {
-			$product = wc_get_product( $id );
+		foreach ( array_filter( array_unique( array( $item['variation_id'], $item['product_id'] ) ) ) as $id ) {
+			$candidate = wc_get_product( (int) $id );
 
-			if ( ! $product instanceof \WC_Product ) {
-				continue;
+			if ( $candidate instanceof \WC_Product ) {
+				$product = $candidate;
+				break;
 			}
-
-			$image = wp_get_attachment_image_url( $product->get_image_id(), 'large' );
-			$sku   = $product->get_sku();
-
-			return array(
-				'title' => $product->get_name(),
-				'price' => (float) $product->get_price(),
-				'image' => $image ? $image : null,
-				'sku'   => '' !== $sku ? $sku : null,
-			);
 		}
 
-		return array();
+		if ( null === $product ) {
+			return array();
+		}
+
+		$image = $product->get_image_id() ? wp_get_attachment_image_url( $product->get_image_id(), 'large' ) : '';
+
+		// A variation without its own photo shows the parent product's —
+		// the same image Tyche's cart table renders for the line.
+		if ( '' === $image && $product->get_parent_id() ) {
+			$parent = wc_get_product( $product->get_parent_id() );
+
+			if ( $parent instanceof \WC_Product && $parent->get_image_id() ) {
+				$image = wp_get_attachment_image_url( $parent->get_image_id(), 'large' );
+			}
+		}
+
+		$sku = $product->get_sku();
+
+		return array(
+			'title' => $product->get_name(),
+			'price' => (float) $product->get_price(),
+			'image' => '' !== $image ? $image : null,
+			'sku'   => '' !== $sku ? $sku : null,
+		);
 	}
 }
