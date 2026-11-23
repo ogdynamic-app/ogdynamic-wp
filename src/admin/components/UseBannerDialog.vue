@@ -42,7 +42,7 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  /** Fired after a CartBounty assignment was saved. */
+  /** Fired after an assignment (CartBounty or Abandoned Cart Lite) was saved. */
   saved: [];
 }>();
 
@@ -157,6 +157,22 @@ const assignmentNote = computed(() => {
   return `Every recipient of ${email} sees this banner${place ? ` ${place}` : ""}, personalized with their own name, products and cart total. Assigning it to an email that already has a banner replaces that banner.`;
 });
 
+// The PUT requires the banner's own fields alongside any assignment change.
+// Style keys are left out so the saved values are kept, and so is the other
+// integration's assignment.
+function bannerPayload() {
+  return {
+    name: props.banner.name,
+    canvas_id: props.banner.canvas_id,
+    canvas_name: props.banner.canvas_name,
+    width: props.banner.width,
+    height: props.banner.height,
+    link: props.banner.link,
+    display_width: props.banner.display_width,
+    map: props.banner.map,
+  };
+}
+
 async function saveAssignment() {
   const cartbounty = emailId.value
     ? { email: Number(emailId.value), placement: placement.value }
@@ -167,17 +183,7 @@ async function saveAssignment() {
       `cart-banners/${props.banner.id}`,
       {
         method: "PUT",
-        body: {
-          name: props.banner.name,
-          canvas_id: props.banner.canvas_id,
-          canvas_name: props.banner.canvas_name,
-          width: props.banner.width,
-          height: props.banner.height,
-          link: props.banner.link,
-          display_width: props.banner.display_width,
-          map: props.banner.map,
-          cartbounty,
-        },
+        body: { ...bannerPayload(), cartbounty },
       },
     );
 
@@ -205,11 +211,19 @@ const wcapPositionName = computed(
       ?.label ?? "",
 );
 
-const wcapNote = computed(() =>
-  wcapPosition.value
-    ? `Every recovery email that shows the cart contents renders this banner ${wcapPositionName.value.toLowerCase()}, personalized with each recipient's own name, products and cart total — and clicking it restores their cart. Only one banner holds this spot; assigning another replaces it.`
-    : "No position selected — saving removes this banner from Abandoned Cart Lite emails.",
-);
+const wcapNote = computed(() => {
+  if (!wcapPosition.value) {
+    return "No position selected — saving removes this banner from Abandoned Cart Lite emails.";
+  }
+
+  // Only a recovery-linked banner restores the cart — the banner's own
+  // link setting decides, so the promise is only made when it holds.
+  const click = props.banner.link === "recovery"
+    ? " — and clicking it restores their cart"
+    : "";
+
+  return `Every recovery email that shows the cart contents renders this banner ${wcapPositionName.value.toLowerCase()}, personalized with each recipient's own name, products and cart total${click}. Only one banner holds this spot; assigning another replaces it.`;
+});
 
 async function saveWcapAssignment() {
   const wcap = wcapPosition.value ? { position: wcapPosition.value } : null;
@@ -219,17 +233,7 @@ async function saveWcapAssignment() {
       `cart-banners/${props.banner.id}`,
       {
         method: "PUT",
-        body: {
-          name: props.banner.name,
-          canvas_id: props.banner.canvas_id,
-          canvas_name: props.banner.canvas_name,
-          width: props.banner.width,
-          height: props.banner.height,
-          link: props.banner.link,
-          display_width: props.banner.display_width,
-          map: props.banner.map,
-          wcap,
-        },
+        body: { ...bannerPayload(), wcap },
       },
     );
 

@@ -11,7 +11,7 @@ Images are designed in the [ogdynamic](https://ogdynamic.com) canvas editor and 
 ## Features
 
 - **Dynamic Open Graph images** — a unique OG image for every post, page, product, and archive, mapped from your content (title, excerpt, price, featured image, …)
-- **Cart Recovery Banners** — personalized banner images for abandoned-cart emails: each recipient sees their own name, cart total, and first product, and clicking the banner restores their cart. Works with FunnelKit Automations (paste a merge tag) and CartBounty (assign to a specific recovery email and position)
+- **Cart Recovery Banners** — personalized banner images for abandoned-cart emails: each recipient sees their own name, cart total, and first product, and clicking the banner restores their cart. Works with FunnelKit Automations (paste a merge tag), CartBounty (assign to a specific recovery email and position), and Abandoned Cart Lite (assign it above or below the cart contents)
 - **Canvas Image block** — Gutenberg block that renders any public canvas at any size into the media library, in PNG, WebP, or JPEG, with a live editor preview
 - **Twitter card support** — `twitter:card` and `twitter:image` output for Twitter-sized images, with the Open Graph image reused for 1200×600 canvases
 - **WooCommerce integration** — product price, SKU, stock status, rating, categories, tags, and attributes as mappable fields

@@ -282,7 +282,6 @@ onMounted(() => {
                   v-for="badge in bannerIntegrations(banner)"
                   :key="badge.label"
                   class="ogd:inline-flex ogd:items-center ogd:rounded-full ogd:bg-primary-soft ogd:px-2 ogd:py-px ogd:text-[10.5px] ogd:font-semibold ogd:text-primary"
-                  title="Assigned to this CartBounty recovery email"
                 >
                   {{ badge.label }}{{ badge.detail ? " · " + badge.detail : "" }}
                 </span>
@@ -294,7 +293,7 @@ onMounted(() => {
                 >
                 · {{ linkLabel(banner) }}
               </p>
-              <div class="ogd:flex ogd:gap-x-3">
+              <div class="ogd:flex ogd:flex-wrap ogd:gap-x-3 ogd:gap-y-2.5">
                 <AppButton
                   v-if="funnelKit?.available"
                   variant="secondary"
@@ -345,7 +344,7 @@ onMounted(() => {
                     class="ogd:size-5"
                     aria-hidden="true"
                   />
-                  Use in Abandoned Cart
+                  Use in Abandoned Cart Lite
                   <svg
                     v-if="banner.wcap"
                     class="ogd:size-3.5 ogd:text-success-text"

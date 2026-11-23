@@ -194,7 +194,9 @@ class CartBanners {
 	 *
 	 * A banner's CartBounty assignment (`cartbounty` => {email, placement})
 	 * claims one automation email — saving an assignment clears it from
-	 * any other banner, so every email renders at most one banner.
+	 * any other banner, so every email renders at most one banner. Its
+	 * Abandoned Cart Lite assignment (`wcap` => {position}) likewise
+	 * claims the plugin's single banner slot.
 	 *
 	 * @param array $banner Sanitized banner payload.
 	 * @return array Saved banner.

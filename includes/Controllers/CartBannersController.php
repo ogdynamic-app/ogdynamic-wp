@@ -10,6 +10,7 @@ namespace OGDynamic\Controllers;
 use OGDynamic\CartBanners;
 use OGDynamic\Integrations\CartBannerSources;
 use OGDynamic\Integrations\IntegrationManager;
+use OGDynamic\Integrations\WcapIntegration;
 use OGDynamic\RestController;
 use WP_REST_Request;
 use WP_REST_Server;
@@ -283,6 +284,7 @@ class CartBannersController {
 	 *
 	 * Position only — the channel is one-per-plugin (see
 	 * CartBanners::claim_wcap_channel()), so there is no email selector.
+	 * Only a position the integration actually renders is accepted.
 	 *
 	 * @param mixed $value Raw assignment ({position}) or null.
 	 * @return array|null Assignment, or null when cleared/invalid.
@@ -294,7 +296,7 @@ class CartBannersController {
 
 		$position = isset( $value['position'] ) ? sanitize_key( (string) $value['position'] ) : '';
 
-		if ( '' === $position ) {
+		if ( ! isset( WcapIntegration::PLACEMENTS[ $position ] ) ) {
 			return null;
 		}
 
@@ -380,11 +382,12 @@ class CartBannersController {
 	/**
 	 * Validates an Abandoned Cart Lite assignment shape.
 	 *
-	 * Null (or an empty object) clears the assignment. The arg declares
-	 * no `type` on purpose: core's injected rest_parse_request_arg would
-	 * run schema validation inside the SANITIZE step and reject the
-	 * clearing null before this callback ever runs — the custom
-	 * validate_callback owns the whole shape check instead.
+	 * Null (or an empty object) clears the assignment, and the position
+	 * must be one the integration renders. The arg declares no `type` on
+	 * purpose: core's injected rest_parse_request_arg would run schema
+	 * validation inside the SANITIZE step and reject the clearing null
+	 * before this callback ever runs — the custom validate_callback owns
+	 * the whole shape check instead.
 	 *
 	 * @param mixed $value The assignment to validate.
 	 * @return bool True if valid, false otherwise.
@@ -397,7 +400,7 @@ class CartBannersController {
 		return is_array( $value )
 			&& isset( $value['position'] )
 			&& is_string( $value['position'] )
-			&& 1 === preg_match( '/^[a-z_]{2,30}$/', $value['position'] );
+			&& isset( WcapIntegration::PLACEMENTS[ $value['position'] ] );
 	}
 
 	/**

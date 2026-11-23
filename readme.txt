@@ -16,7 +16,7 @@ When you share a link on Facebook, Twitter/X, LinkedIn, or Slack, the first thin
 
 **ogdynamic** is an Open Graph image generator that automatically creates professional, dynamic OG images for every page on your WordPress site. It connects to [ogdynamic.com](https://ogdynamic.com) and uses your canvas templates to generate a unique social share image for each post, product, or archive — including the post title, author, excerpt, product price, categories, and more — all without slowing down your website.
 
-For WooCommerce stores, **Cart Recovery Banners** turn abandoned-cart emails into recoveries: each banner is personalized with the shopper's name, cart total, and the product they left behind — designed once in the canvas editor, delivered by the CDN at email open, and dropped into your emails with a merge tag (FunnelKit Automations) or a one-click assignment (CartBounty). Clicking the banner restores their cart in one click.
+For WooCommerce stores, **Cart Recovery Banners** turn abandoned-cart emails into recoveries: each banner is personalized with the shopper's name, cart total, and the product they left behind — designed once in the canvas editor, delivered by the CDN at email open, and dropped into your emails with a merge tag (FunnelKit Automations) or a one-click assignment (CartBounty, Abandoned Cart Lite). Clicking the banner restores their cart in one click.
 
 And when you need more than OG images, the Canvas Image block turns any canvas into ad banners, product photo cards, or social media graphics saved right in your media library.
 
@@ -31,7 +31,7 @@ And when you need more than OG images, the Canvas Image block turns any canvas i
 
 = Features =
 
-* **Cart Recovery Banners** — Personalized banner images for abandoned cart emails: every recipient sees their own name, cart total, and first product, and clicking the banner restores their cart. Works with FunnelKit Automations (paste a merge tag) and CartBounty (assign to a specific recovery email and position), with width, spacing, and corner styling and a live preview
+* **Cart Recovery Banners** — Personalized banner images for abandoned cart emails: every recipient sees their own name, cart total, and first product, and clicking the banner restores their cart. Works with FunnelKit Automations (paste a merge tag), CartBounty (assign to a specific recovery email and position), and Abandoned Cart Lite (assign it above or below the cart contents), with width, spacing, and corner styling and a live preview
 * **Dynamic Open Graph Images** — Automatically generate unique OG images for posts, pages, products, and archives using your content
 * **Canvas Image Gutenberg Block** — Generate any canvas size in the block editor — ad banners, product photo cards, social media graphics — with a live preview, and save them to your media library as PNG, WebP, or JPEG
 * **Facebook, Twitter/X & LinkedIn Ready** — Outputs proper og:image, og:image:width, og:image:height, twitter:card, and twitter:image meta tags for rich link previews
@@ -51,7 +51,7 @@ And when you need more than OG images, the Canvas Image block turns any canvas i
 3. Map your WordPress content fields to the template variables (title, subtitle, image, price, etc.)
 4. ogdynamic automatically generates the right Open Graph image for every page — no ongoing effort needed
 5. For other image sizes, add the ogdynamic Canvas Image block to any post or page to generate ad banners, product photo cards, or social graphics into your media library
-6. To recover abandoned carts, create a Cart Recovery Banner and paste its merge tag into a FunnelKit Automations email or assign it to a CartBounty recovery email
+6. To recover abandoned carts, create a Cart Recovery Banner and paste its merge tag into a FunnelKit Automations email, or assign it to a CartBounty recovery email or to Abandoned Cart Lite's recovery emails
 
 = Template Mappings =
 

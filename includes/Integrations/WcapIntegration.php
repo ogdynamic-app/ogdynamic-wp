@@ -24,6 +24,12 @@ use OGDynamic\Integrations\Wcap\Sources;
  * filters carry no email-template id, so per-email assignment is not
  * possible — every reminder email that includes the cart contents block
  * renders the assigned banner.
+ *
+ * Tyche's "preview" and "send test" emails build their own demo cart block
+ * and pass it through the same block filter, but with no cart row (and
+ * through a differently named link filter our capture is not on): with no
+ * row to personalize from, the banner stays out of previews — they never
+ * show recipient data.
  */
 class WcapIntegration implements Integration {
 
@@ -96,20 +102,17 @@ class WcapIntegration implements Integration {
 	 * Hooks into Tyche's email render.
 	 *
 	 * The recovery link is captured on the `cart.link` merge-tag filter —
-	 * it fires once per real render, right before the products block is
-	 * built, and carries the finished track URL (which embeds Tyche's
-	 * sent-history id, so it cannot be rebuilt). The banner renders on the
-	 * `products.cart` filter, which receives the cart row and the rendered
-	 * cart table; the banner is prepended or appended per the assignment.
-	 *
-	 * Both filters run only in the cron's real send loop — previews and
-	 * test emails send the raw template body — so no capture can leak
-	 * between renders.
+	 * the cron fires it for every email, right before the products block
+	 * is built, and it carries the finished track URL (which embeds
+	 * Tyche's sent-history id, so it cannot be rebuilt) plus the cart row.
+	 * The banner renders on the `products.cart` filter, which receives the
+	 * cart table HTML and that same row; the banner is prepended or
+	 * appended per the assignment.
 	 *
 	 * @return void
 	 */
 	public static function init(): void {
-		add_filter( 'wcal_abandoned_cart_email_content_cart.link', array( Sources::class, 'capture_link' ) );
+		add_filter( 'wcal_abandoned_cart_email_content_cart.link', array( Sources::class, 'capture_link' ), 10, 3 );
 		add_filter( 'wcal_abandoned_cart_email_content_products.cart', array( self::class, 'render_banner' ), 10, 3 );
 	}
 
@@ -195,47 +198,57 @@ class WcapIntegration implements Integration {
 	 * Called on Tyche's products.cart merge filter; receives the rendered
 	 * cart table HTML and the abandoned-cart row being emailed. Returns
 	 * the table with the banner prepended or appended per the assignment.
-	 * The capture is cleared on every pass — banner or not — so a
-	 * following render in the same process can never inherit the previous
+	 * The capture is cleared on every pass — banner or not — so a following
+	 * render in the same process can never inherit the previous
 	 * recipient's data.
 	 *
+	 * Without a cart row there is nothing to personalize from: that is
+	 * Tyche's preview/test path, which builds a demo block and passes no
+	 * row — the block goes back untouched.
+	 *
 	 * @param string $content Rendered cart contents HTML.
-	 * @param mixed  $unused  Tyche's literal false placeholder argument.
-	 * @param object $cart    Row from Tyche's abandoned cart history table.
+	 * @param mixed  $unused  Tyche's literal false placeholder argument (true in previews).
+	 * @param object $cart    Row from Tyche's abandoned cart history table (null in previews).
 	 * @return string Content with the banner, or unchanged.
 	 */
 	public static function render_banner( $content, $unused, $cart ) {
 		$content = is_string( $content ) ? $content : '';
 		$banner  = self::assigned_banner();
 
-		if ( null !== $banner && is_object( $cart ) && ! empty( $banner['id'] ) ) {
-			$position = (string) ( $banner['wcap']['position'] ?? '' );
-
-			if ( ! isset( self::PLACEMENTS[ $position ] ) ) {
-				$position = self::DEFAULT_PLACEMENT;
-			}
-
-			// One context build serves both the params and the recovery
-			// link; spacing comes from the banner's own email settings.
+		if ( null !== $banner && ! empty( $banner['id'] ) && is_object( $cart ) ) {
 			Sources::set_cart( $cart );
-			$context = IntegrationManager::context();
-			$params  = CartBanners::resolve_params( $banner, $context );
-			$link    = (string) ( $banner['link'] ?? CartBanners::LINK_RECOVERY );
 
-			$args = array(
-				'link'          => ( CartBanners::LINK_RECOVERY === $link || CartBanners::LINK_NONE === $link ) ? $link : esc_url_raw( $link ),
-				'alt'           => (string) $banner['name'],
-				'recovery_url'  => $context->recovery_url(),
-				'margin_top'    => (int) ( $banner['margin_top'] ?? 0 ),
-				'margin_bottom' => (int) ( $banner['margin_bottom'] ?? 0 ),
-			);
+			// Tyche swaps its whole cart table for a "product no longer
+			// exists" notice when nothing in the cart can be rendered —
+			// the banner steps aside with it.
+			if ( Sources::has_items() ) {
+				$position = (string) ( $banner['wcap']['position'] ?? '' );
 
-			// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- image_markup() escapes its URL/alt/link attributes.
-			$markup = CartBanners::image_markup( $banner, $params, $args );
+				if ( ! isset( self::PLACEMENTS[ $position ] ) ) {
+					$position = self::DEFAULT_PLACEMENT;
+				}
 
-			Sources::clear();
+				// One context build serves both the params and the recovery
+				// link; spacing comes from the banner's own email settings.
+				$context = IntegrationManager::context();
+				$params  = CartBanners::resolve_params( $banner, $context );
+				$link    = (string) ( $banner['link'] ?? CartBanners::LINK_RECOVERY );
 
-			return 'below' === $position ? $content . $markup : $markup . $content;
+				$args = array(
+					'link'          => ( CartBanners::LINK_RECOVERY === $link || CartBanners::LINK_NONE === $link ) ? $link : esc_url_raw( $link ),
+					'alt'           => (string) $banner['name'],
+					'recovery_url'  => $context->recovery_url(),
+					'margin_top'    => (int) ( $banner['margin_top'] ?? 0 ),
+					'margin_bottom' => (int) ( $banner['margin_bottom'] ?? 0 ),
+				);
+
+				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- image_markup() escapes its URL/alt/link attributes.
+				$markup = CartBanners::image_markup( $banner, $params, $args );
+
+				Sources::clear();
+
+				return 'below' === $position ? $content . $markup : $markup . $content;
+			}
 		}
 
 		Sources::clear();
