@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Requires WordPress 7.0 or higher
+
+### Added
+- **Abandoned Cart Lite for WooCommerce (Tyche) integration**: assign a banner above or below the cart-contents block of its abandoned-cart recovery emails — personalized per recipient with their name, cart total, and first product, wrapped in the cart recovery link. The banner's price and cart total are the ones Tyche's own cart table prints in the same email (the abandonment-time amounts under the store's tax settings, never live prices), and it stays out of emails whose cart products no longer exist. One banner claims the plugin (Tyche's merge-tag filters carry no email-template id), with the usual "Use in …" dialog, list badge, and FeatureFlags-gated boot. Tyche's preview and test emails build a demo cart block with no cart row, so they never include the banner
+
+### Fixed
+- Clearing a banner's integration assignment through the REST API: a `null` `cartbounty`/`wcap` body param was rejected with HTTP 400 — core's injected `rest_parse_request_arg` runs schema validation inside the sanitize step and refuses `null` against `type: object` before any custom validator runs. The assignment args no longer declare a type; the custom validate callbacks own the whole shape check
+
 ## [0.6.0] - 2026-11-21
 
 ### Changed

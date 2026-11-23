@@ -67,6 +67,12 @@ export type CartBountyAssignment = {
   placement: string;
 };
 
+/** Abandoned Cart Lite assignment stored on the banner: position only (one banner per plugin). */
+export type WcapAssignment = {
+  /** Position key (see WcapIntegration::PLACEMENTS). */
+  position: string;
+};
+
 export type CartBanner = {
   id: string;
   name: string;
@@ -86,6 +92,8 @@ export type CartBanner = {
   map: CartBannerMapEntry[];
   /** CartBounty email assignment, or null when the banner is unused there. */
   cartbounty?: CartBountyAssignment | null;
+  /** Abandoned Cart Lite assignment, or null when the banner is unused there. */
+  wcap?: WcapAssignment | null;
   created_at: string;
   updated_at: string;
 };
@@ -114,11 +122,13 @@ export type CartBountyPlacement = {
 /** Integration slugs — single source for the plain-text ids, mirroring the PHP integrations' ::slug() values. */
 export const INTEGRATION_SLUG_FUNNELKIT = "funnelkit";
 export const INTEGRATION_SLUG_CARTBOUNTY = "cartbounty";
+export const INTEGRATION_SLUG_WCAP = "wcap";
 
 /** The integrations a "Use in …" dialog can target. */
 export type IntegrationMode =
   | typeof INTEGRATION_SLUG_FUNNELKIT
-  | typeof INTEGRATION_SLUG_CARTBOUNTY;
+  | typeof INTEGRATION_SLUG_CARTBOUNTY
+  | typeof INTEGRATION_SLUG_WCAP;
 
 export type IntegrationStatus = {
   slug: string;

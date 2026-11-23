@@ -1,6 +1,6 @@
 # ogdynamic — Open Graph Images & Abandoned Cart Recovery Email Banners
 
-![WordPress](https://img.shields.io/badge/WordPress-6.3%2B-blue)
+![WordPress](https://img.shields.io/badge/WordPress-7.0%2B-blue)
 ![PHP](https://img.shields.io/badge/PHP-7.4%2B-purple)
 ![License](https://img.shields.io/badge/License-GPLv2-green)
 
@@ -11,7 +11,7 @@ Images are designed in the [ogdynamic](https://ogdynamic.com) canvas editor and 
 ## Features
 
 - **Dynamic Open Graph images** — a unique OG image for every post, page, product, and archive, mapped from your content (title, excerpt, price, featured image, …)
-- **Cart Recovery Banners** — personalized banner images for abandoned-cart emails: each recipient sees their own name, cart total, and first product, and clicking the banner restores their cart. Works with FunnelKit Automations (paste a merge tag) and CartBounty (assign to a specific recovery email and position)
+- **Cart Recovery Banners** — personalized banner images for abandoned-cart emails: each recipient sees their own name, cart total, and first product, and clicking the banner restores their cart. Works with FunnelKit Automations (paste a merge tag), CartBounty (assign to a specific recovery email and position), and Abandoned Cart Lite (assign it above or below the cart contents)
 - **Canvas Image block** — Gutenberg block that renders any public canvas at any size into the media library, in PNG, WebP, or JPEG, with a live editor preview
 - **Twitter card support** — `twitter:card` and `twitter:image` output for Twitter-sized images, with the Open Graph image reused for 1200×600 canvases
 - **WooCommerce integration** — product price, SKU, stock status, rating, categories, tags, and attributes as mappable fields
@@ -26,7 +26,7 @@ Images are designed in the [ogdynamic](https://ogdynamic.com) canvas editor and 
 3. Connect your ogdynamic.com account via OAuth
 4. Map a canvas to each content type, or add the **ogdynamic Canvas Image** block in the editor
 
-Requirements: WordPress 6.3+, PHP 7.4+, an [ogdynamic.com](https://ogdynamic.com) account.
+Requirements: WordPress 7.0+, PHP 7.4+, an [ogdynamic.com](https://ogdynamic.com) account.
 
 ## Development
 

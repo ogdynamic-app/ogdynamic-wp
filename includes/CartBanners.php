@@ -194,7 +194,9 @@ class CartBanners {
 	 *
 	 * A banner's CartBounty assignment (`cartbounty` => {email, placement})
 	 * claims one automation email — saving an assignment clears it from
-	 * any other banner, so every email renders at most one banner.
+	 * any other banner, so every email renders at most one banner. Its
+	 * Abandoned Cart Lite assignment (`wcap` => {position}) likewise
+	 * claims the plugin's single banner slot.
 	 *
 	 * @param array $banner Sanitized banner payload.
 	 * @return array Saved banner.
@@ -210,6 +212,7 @@ class CartBanners {
 		$banner['updated_at'] = current_time( 'mysql' );
 
 		self::claim_cartbounty_email( $banner );
+		self::claim_wcap_channel( $banner );
 
 		Settings::update( self::OPTION_PREFIX . $banner['id'], $banner );
 
@@ -246,6 +249,32 @@ class CartBanners {
 
 			if ( is_array( $other_assignment ) && (int) ( $other_assignment['email'] ?? -1 ) === $email ) {
 				unset( $other['cartbounty'] );
+				Settings::update( self::OPTION_PREFIX . $other_id, $other );
+			}
+		}
+	}
+
+	/**
+	 * Clears the Abandoned Cart Lite assignment from other banners.
+	 *
+	 * One banner renders per channel (Tyche's merge-tag filters carry no
+	 * email-template id), so a new claim replaces the previous holder.
+	 *
+	 * @param array $banner Banner payload being saved.
+	 * @return void
+	 */
+	protected static function claim_wcap_channel( array $banner ): void {
+		if ( empty( $banner['wcap'] ) ) {
+			return;
+		}
+
+		foreach ( self::get_all() as $other_id => $other ) {
+			if ( $other_id === (string) $banner['id'] ) {
+				continue;
+			}
+
+			if ( ! empty( $other['wcap'] ) ) {
+				unset( $other['wcap'] );
 				Settings::update( self::OPTION_PREFIX . $other_id, $other );
 			}
 		}
